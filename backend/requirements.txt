@@ -18,5 +18,13 @@ timm==1.0.30
 safetensors==0.8.0
 pillow==12.3.0
 
+# --- Scheme search (Increment 2) ---
+# Farmer Scheme Finder search provider. Imported lazily, so the application and
+# the test suite run without it (no live search unless enabled). Increment 3
+# installed and smoke-tested 9.16.0: `from ddgs import DDGS;
+# DDGS().text(query, max_results=n)` -> dicts with title/href/body; requires
+# Python >=3.10. Pinned to the verified version; pulls primp + lxml.
+ddgs==9.16.0
+
 # --- tests ---
 pytest==9.1.1

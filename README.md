@@ -6,8 +6,9 @@ API, and voice accessibility (text-to-speech, speech-to-text, and a
 farmer-friendly prediction-to-speech response builder).
 
 > Status: **backend implemented** — the health, crops, prediction,
-> model-inventory, comparison, and speech endpoints below are registered and
-> covered by tests. The web frontend/dashboard is **not yet built**. Fine-tuned
+> model-inventory, comparison, speech and farmer-scheme-search endpoints below
+> are registered and covered by tests. The web frontend/dashboard is **not yet
+> built**. Fine-tuned
 > predictions are implemented and tested but **disabled in the public API** until
 > the training preprocessing is confirmed (see below).
 
@@ -28,8 +29,9 @@ AI4Seva Hackathon/
 │   │   ├── comparison.py        # model inventory + comparison (no inference)
 │   │   ├── schemas.py           # Pydantic models
 │   │   ├── speech/              # tts.py, stt.py, text.py (Groq-backed voice)
+│   │   ├── schemes/            # Farmer Scheme Finder: provider, sources, service
 │   │   └── routers/             # health.py, crops.py, predict.py,
-│   │                            # comparison.py, speech.py
+│   │                            # comparison.py, speech.py, schemes.py
 │   ├── scripts/verify_models.py # offline artifact verification report
 │   ├── tests/                   # pytest suite
 │   ├── requirements.txt
@@ -72,6 +74,24 @@ Key variables:
 - `GROQ_TTS_*` — text-to-speech endpoint/model/voice/format/limits.
 - `GROQ_STT_*` and `STT_MAX_UPLOAD_BYTES` — speech-to-text endpoint/model/format/
   timeout and upload ceiling.
+- `SCHEME_SEARCH_ENABLED` — master switch for `GET /schemes/search` (**default
+  `false`** → `503 scheme_search_disabled`). `SCHEME_SEARCH_TIMEOUT_SECONDS`
+  (default 8) and `SCHEME_SEARCH_MAX_RESULTS` (default 20) bound the provider
+  call; `SCHEME_SEARCH_REGION` (default `in-en`, India/English) is the DDGS
+  region. `SCHEME_OFFICIAL_ORIGINS` is the explicit official-source allow-list
+  (**empty by default**, so no host is marked verified). Evidence-checked hosts
+  (e.g. `agrimanipur.mn.gov.in`, `manipur.gov.in`, `agriwelfare.gov.in`) are
+  suggested in `backend/.env.example`, but operators **must review and set the
+  production allow-list themselves**; add exact hosts only, never broad
+  suffixes such as `gov.in`.
+- `SCHEME_CATALOGUE_ENABLED` — merge a small, hand-curated set of official
+  information resources into `GET /schemes/search` results (**default `false`**).
+  Curated entries are merged only **after a successful live search** (never as a
+  fallback for provider failures/timeouts) and are only marked verified when
+  their host is accepted by `SCHEME_OFFICIAL_ORIGINS`: the catalogue is **not** a
+  second allow-list. Seeded entries carry `scheme_status="unknown"` — domain
+  identity was reviewed, but scheme activity, eligibility and availability were
+  **not** verified.
 
 Defaults for every variable are documented in `backend/.env.example` and match
 `backend/app/config.py`.
@@ -88,6 +108,7 @@ Defaults for every variable are documented in `backend/.env.example` and match
 | POST   | `/speech/speak`          | Synthesize text to **WAV** audio (Groq TTS).                       |
 | POST   | `/speech/transcribe`     | Transcribe an uploaded audio clip to text (Groq STT).              |
 | POST   | `/speech/response`       | Build farmer-friendly speech text from a prediction.               |
+| GET    | `/schemes/search`        | Search official farmer schemes (Manipur-focused); **disabled by default**. |
 
 Errors use a consistent envelope:
 
@@ -137,6 +158,66 @@ preprocessing is unverified.
   `predicted_label`, optional `confidence`) into concise, uncertainty-preserving
   farmer-friendly text. It is a pure transformation — no inference or network
   calls.
+
+### Farmer scheme search
+
+`GET /schemes/search` searches official farmer schemes with Manipur context. It
+is **disabled by default** (`SCHEME_SEARCH_ENABLED=false`) and returns `503
+scheme_search_disabled` until enabled. At least one of `q`, `crop` or `need`
+must be supplied (a `district`/`language` alone does not trigger a search).
+
+Query parameters:
+
+| Name       | Required | Notes                                                             |
+|------------|----------|-------------------------------------------------------------------|
+| `q`        | one of   | Free text, trimmed, max 200 chars.                                |
+| `crop`     | one of   | `maize` \| `rice` \| `potato` \| `tomato`.                        |
+| `need`     | one of   | `seeds`,`fertilizer`,`credit`,`insurance`,`irrigation`,`machinery`, `market`,`training`,`pest_disease`,`general`. |
+| `district` | no       | Manipur district name (bounded free text; no fixed list verified). |
+| `limit`    | no       | 1–20 (default 5); also capped by `SCHEME_SEARCH_MAX_RESULTS`.     |
+| `language` | no       | ISO-639-1 code (default `en`); this API does **not** claim TTS support for every language. |
+
+Example request:
+
+```text
+GET /schemes/search?crop=rice&district=Imphal%20East&need=insurance&language=en
+```
+
+Example response (shape only):
+
+```json
+{
+  "query": { "q": null, "crop": "rice", "district": "Imphal East", "need": "insurance" },
+  "results": [
+    {
+      "title": "Example result",
+      "url": "https://example.gov.in/scheme",
+      "snippet": "Search-provider summary...",
+      "source_domain": "example.gov.in",
+      "source_type": "official_goi",
+      "verified": true
+    }
+  ],
+  "result_count": 1,
+  "official_count": 1,
+  "retrieved_at": "2026-01-01T00:00:00+00:00",
+  "disclaimer": "Search results are informational. Confirm scheme availability and eligibility with the responsible official department.",
+  "language": "en"
+}
+```
+
+`source_type` is `official_manipur` / `official_goi` / `other`, and `verified` is
+true **only** for hosts on the explicit `SCHEME_OFFICIAL_ORIGINS` allow-list
+(empty by default). Results are ordered official-first (verified Manipur, then
+verified Government of India, then unverified), and within each tier by a simple
+deterministic relevance score derived from the Manipur context, the selected
+`crop`/`need` and the query terms. Duplicate results are collapsed using
+conservative URL normalization (host casing, fragments, tracking parameters and
+trailing slashes; meaningful query parameters are preserved). A successful search
+that finds nothing returns `200` with empty results; only genuine provider
+failures (`502`) and timeouts (`504`) are errors. Result URLs are never fetched,
+and **a search hit is not proof of eligibility, an open application, or a
+guaranteed benefit**.
 
 ## Tests
 

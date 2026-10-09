@@ -7,7 +7,9 @@ copied or moved.
 
 from __future__ import annotations
 
+import math
 import os
+import re
 from pathlib import Path
 
 # backend/app/config.py -> backend/app -> backend -> project root
@@ -81,6 +83,86 @@ def parse_allowed_origins(raw: str | None) -> tuple[str, ...]:
     origins: list[str] = []
     for token in raw.split(","):
         origin = token.strip().strip('"').strip("'").rstrip("/")
+        if origin and origin not in origins:
+            origins.append(origin)
+    return tuple(origins)
+
+
+def _parse_bool(raw: str | None, default: bool = False) -> bool:
+    """Parse a boolean environment flag (``1/true/yes/on``), else ``default``."""
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _parse_positive_int(raw: str | None, default: int, name: str) -> int:
+    """Parse a strictly positive integer setting.
+
+    Blank/unset -> ``default``. Raises ``ValueError`` for non-integers or values
+    that are not strictly positive, so misconfiguration fails loudly instead of
+    silently degrading (consistent with the existing ``int(...)`` settings).
+    """
+    if raw is None or not raw.strip():
+        return default
+    try:
+        value = int(raw.strip())
+    except ValueError:
+        raise ValueError(f"{name} must be an integer.") from None
+    if value <= 0:
+        raise ValueError(f"{name} must be a positive integer.")
+    return value
+
+
+def _parse_positive_float(raw: str | None, default: float, name: str) -> float:
+    """Parse a strictly positive, finite float setting (blank/unset -> default)."""
+    if raw is None or not raw.strip():
+        return default
+    try:
+        value = float(raw.strip())
+    except ValueError:
+        raise ValueError(f"{name} must be a number.") from None
+    if not math.isfinite(value) or value <= 0:
+        raise ValueError(f"{name} must be a positive, finite number.")
+    return value
+
+
+_REGION_FORMAT = re.compile(r"^[a-z]{2}-[a-z]{2,3}$")
+
+
+def _parse_region(raw: str | None, default: str, name: str) -> str:
+    """Parse a DDGS ``<country>-<language>`` region code (e.g. ``in-en``).
+
+    Blank/unset -> ``default``. Raises ``ValueError`` for anything that is not
+    of the ``cc-lang`` form the ddgs engines expect (they split the value on
+    ``-``), so a typo fails loudly instead of silently degrading search
+    relevance.
+    """
+    if raw is None or not raw.strip():
+        return default
+    value = raw.strip().lower()
+    if not _REGION_FORMAT.match(value):
+        raise ValueError(
+            f"{name} must be a '<country>-<language>' code such as 'in-en'."
+        )
+    return value
+
+
+def parse_official_origins(raw: str | None) -> tuple[str, ...]:
+    """Parse the official-source allow-list for the scheme search.
+
+    Comma-separated. An entry may be typed as ``manipur:<host>`` (state
+    government) or ``goi:<host>`` (Government of India); an untyped entry
+    defaults to ``goi`` when classified (see ``app.schemes.sources``).
+    Whitespace and quotes are trimmed, entries are lower-cased, empties are
+    dropped and duplicates are collapsed while preserving order. The result is
+    empty when nothing is configured, which means **nothing** is treated as
+    official — the safe default.
+    """
+    if not raw:
+        return ()
+    origins: list[str] = []
+    for token in raw.split(","):
+        origin = token.strip().strip('"').strip("'").lower()
         if origin and origin not in origins:
             origins.append(origin)
     return tuple(origins)
@@ -163,6 +245,40 @@ class Settings:
                 int(os.environ.get("STT_MAX_UPLOAD_BYTES", str(25 * 1024 * 1024))),
                 100 * 1024 * 1024,
             ),
+        )
+        # --- Increment 2: Farmer Scheme Finder search provider ---
+        # Disabled by default; no search runs unless explicitly enabled. The
+        # official allow-list is empty by default, so NOTHING is classified as
+        # official until verified hosts are added. No API secret is required.
+        self.scheme_search_enabled: bool = _parse_bool(
+            os.environ.get("SCHEME_SEARCH_ENABLED")
+        )
+        self.scheme_search_timeout_seconds: float = _parse_positive_float(
+            os.environ.get("SCHEME_SEARCH_TIMEOUT_SECONDS"),
+            8.0,
+            "SCHEME_SEARCH_TIMEOUT_SECONDS",
+        )
+        self.scheme_search_max_results: int = _parse_positive_int(
+            os.environ.get("SCHEME_SEARCH_MAX_RESULTS"),
+            20,
+            "SCHEME_SEARCH_MAX_RESULTS",
+        )
+        # India-oriented English region for the DDGS provider (e.g. in-en).
+        self.scheme_search_region: str = _parse_region(
+            os.environ.get("SCHEME_SEARCH_REGION"),
+            "in-en",
+            "SCHEME_SEARCH_REGION",
+        )
+        self.scheme_official_origins: tuple[str, ...] = parse_official_origins(
+            os.environ.get("SCHEME_OFFICIAL_ORIGINS")
+        )
+        # --- Increment 8B: curated official-resource catalogue ---
+        # Disabled by default. When enabled, a small audited set of official
+        # information resources is merged into search results, but only after a
+        # successful live search and only for hosts the allow-list above accepts
+        # (the catalogue is not a second allow-list).
+        self.scheme_catalogue_enabled: bool = _parse_bool(
+            os.environ.get("SCHEME_CATALOGUE_ENABLED")
         )
 
 

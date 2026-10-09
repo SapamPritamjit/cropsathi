@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CropSathi — Your Crop Health Companion</title>
+<style>
+:root{--green:#28623b;--green2:#43864a;--pale:#eff3e8;--ink:#263b2d;--muted:#758075;--gold:#f6d778}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink);background:#f7f8f3}
+.app{min-height:100vh;display:grid;grid-template-columns:220px 1fr}.sidebar{background:#eef2e7;padding:28px 18px;display:flex;flex-direction:column;gap:25px;border-right:1px solid #e1e6da}.brand{font-weight:850;font-size:22px;letter-spacing:-.8px}.tagline{font-size:12px;color:#697565;margin-top:5px}.nav{display:grid;gap:7px}.nav button{border:0;background:transparent;text-align:left;padding:12px 14px;border-radius:10px;color:#4f5a50;font-size:15px;cursor:pointer}.nav button.active,.nav button:hover{background:#4a9148;color:white}.side-bottom{margin-top:auto;font-size:12px;color:#879080;line-height:1.6}
+main{min-width:0;position:relative;overflow:hidden}.hero-bg{position:absolute;inset:0 0 auto 0;height:530px;background:linear-gradient(90deg,rgba(248,249,243,.96) 0%,rgba(248,249,243,.87) 39%,rgba(248,249,243,.12) 100%),url('https\://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=1800&q=85') center/cover;z-index:0}.content{position:relative;z-index:1;max-width:1250px;padding:34px 34px 42px;margin:auto}.welcome{display:flex;align-items:center;gap:14px;flex-wrap:wrap}.welcome h1{font-size:27px;letter-spacing:-.7px;margin:0 0 5px;font-weight:800}.welcome p{font-size:14px;color:#657268;margin:0;max-width:400px;line-height:1.5}.tts-card{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:#fff;border:2px solid #dbe8d5;border-radius:16px;padding:14px 16px;max-width:760px;box-shadow:0 5px 20px #243b2410;margin-bottom:22px}.tts-button{display:flex;align-items:center;justify-content:center;gap:9px;background:#28623b;color:white;border:0;border-radius:12px;padding:14px 17px;min-height:54px;font-weight:800;font-size:16px;cursor:pointer;white-space:nowrap}.tts-button:focus-visible,.ai-fab:focus-visible,button:focus-visible{outline:3px solid #f0bf45;outline-offset:3px}.tts-copy{font-size:13px;line-height:1.45;color:#5c6c5d;flex:1;min-width:170px}.tts-toggle{display:flex;align-items:center;gap:9px;border:2px solid #cbdcc5;background:#f4f8f0;color:#214d2d;border-radius:12px;padding:12px 14px;min-height:48px;font-weight:800;font-size:14px;cursor:pointer}.tts-toggle[aria-pressed='true']{background:#f6d778;border-color:#9d7a18;color:#243b2d}.tts-toggle:focus-visible{outline:3px solid #f0bf45;outline-offset:3px}.click-read-on{cursor:help;outline:2px dashed #a7c997;outline-offset:2px}.click-read-on:focus{outline:3px solid #f0bf45}.tts-status{font-size:12px;color:#28623b;margin-top:3px;font-weight:700}.feature-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.feature-actions .primary{font-size:14px;min-height:44px}.secondary{border:2px solid #d8e5d2;border-radius:9px;background:#fff;color:#28623b;font-weight:800;padding:10px 14px;cursor:pointer}.ai-fab{position:fixed;right:22px;bottom:22px;z-index:20;border:0;border-radius:999px;background:#28623b;color:white;box-shadow:0 8px 25px #1d3b2780;width:62px;height:62px;display:flex;align-items:center;justify-content:center;flex-direction:column;cursor:pointer;font-size:24px}.ai-fab span{font-size:10px;font-weight:800;line-height:1}.ai-panel{display:none;position:fixed;right:22px;bottom:94px;width:min(340px,calc(100vw - 32px));z-index:21;background:#fff;border:1px solid #dfe7d9;border-radius:18px;box-shadow:0 16px 45px #14251530;padding:18px}.ai-panel.open{display:block}.ai-panel h3{margin:0 0 6px}.ai-panel p{font-size:13px;line-height:1.5;color:#687568}.ai-choices{display:grid;gap:8px}.ai-choices button{border:1px solid #dce7d5;background:#f5f8f1;border-radius:10px;padding:11px;text-align:left;color:#284b30;font-weight:700;cursor:pointer}.ai-answer{display:none;margin-top:12px;padding:12px;background:#edf5e8;border-radius:10px;font-size:13px;line-height:1.5}.layout{display:grid;grid-template-columns:minmax(330px,520px) minmax(200px,1fr);gap:28px;margin-top:35px}.left-col{min-width:0}.scan-card{height:158px;border-radius:18px;overflow:hidden;background:linear-gradient(90deg,#397643 0%,rgba(48,104,52,.94) 46%,rgba(30,78,37,.15) 100%),url('https\://images.unsplash.com/photo-1518977676601-b53f82aba655?auto=format&fit=crop&w=900&q=80') center/cover;color:white;padding:22px 24px;display:flex;align-items:center}.scan-copy{max-width:300px}.scan-card h2{font-size:23px;line-height:1.1;letter-spacing:-.7px;margin:0 0 12px}.scan-card p{font-size:13px;line-height:1.45;margin:0 0 14px;color:#eef5e9}.primary{border:0;border-radius:9px;background:white;color:#28623b;font-weight:750;padding:10px 14px;cursor:pointer}.panel{background:rgba(255,255,255,.91);backdrop-filter:blur(12px);border:1px solid rgba(227,232,220,.8);border-radius:17px;padding:18px;margin-top:12px;box-shadow:0 8px 30px #344b2910}.panel-title{font-size:14px;font-weight:800;margin:0 0 13px}.diagnosis{display:flex;align-items:center;gap:13px}.thumb{width:58px;height:58px;border-radius:10px;object-fit:cover}.diagnosis-info{flex:1}.diagnosis-info strong{display:block;font-size:16px}.confidence{font-size:13px;color:#52824a;font-weight:700;margin-top:3px}.severity{background:#f7dc83;color:#594b1e;padding:6px 10px;border-radius:7px;font-size:12px;font-weight:800}.useful{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.useful button{border:1px solid #edf0e7;background:#f4f6ed;border-radius:11px;padding:13px 10px;text-align:left;font-weight:700;color:#486147;cursor:pointer;min-height:68px}.useful button:hover{background:#e4edda}.right-col{padding-top:4px;display:flex;flex-direction:column;gap:14px}.tip{margin-top:0;background:rgba(255,255,255,.9);border-radius:17px;padding:19px;border:1px solid #e8ebdf;max-width:360px}.ai-help-card{background:#fff;border:1px solid #e4eadf;border-radius:17px;padding:19px;max-width:360px;box-shadow:0 8px 25px #344b290c}.ai-help-card .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:1.4px;color:#4d8448;font-weight:850}.ai-help-card h3{font-size:18px;margin:9px 0}.ai-help-card p{font-size:13px;line-height:1.6;color:#677466;margin:0}.ai-help-button{display:inline-block;margin-top:15px;border:0;border-radius:10px;background:#28623b;color:#fff;text-decoration:none;font-weight:800;font-size:14px;padding:12px 15px;cursor:pointer}.ai-help-button:hover,.ai-help-button:focus{background:#1d4f30}.ai-help-button:focus-visible{outline:3px solid #f0bf45;outline-offset:3px}.tip .eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:1.4px;color:#4d8448;font-weight:850}.tip h3{font-size:18px;margin:9px 0}.tip p{font-size:13px;line-height:1.6;color:#677466;margin:0}.scheme-button{display:inline-block;margin-top:16px;background:#28623b;color:#fff;text-decoration:none;font-weight:800;font-size:14px;padding:12px 15px;border-radius:10px}.scheme-button:hover,.scheme-button:focus{background:#1d4f30}.scheme-button:focus-visible{outline:3px solid #f0bf45;outline-offset:3px}.status{display:flex;align-items:center;gap:8px;font-size:12px;color:#5d7858;margin-top:15px}.dot{width:8px;height:8px;border-radius:50%;background:#5aa75c}
+.section-view{display:none}.section-view.show{display:block}.dashboard.show{display:block}.section-heading{font-size:27px;margin:0 0 8px}.sub{color:#758075;font-size:14px;margin:0 0 24px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:24px 0}.stat{background:white;border:1px solid #e8ebdf;border-radius:14px;padding:18px}.stat span{font-size:12px;color:#758075}.stat strong{display:block;font-size:25px;margin-top:8px}.crop-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.crop{background:white;border:1px solid #e8ebdf;border-radius:14px;padding:18px}.crop h3{margin:0 0 7px}.crop p{color:#71806f;font-size:13px;line-height:1.5}.pill{display:inline-block;padding:5px 9px;border-radius:99px;background:#e5f1df;color:#477747;font-size:11px;font-weight:800}.history-item{padding:15px 0;border-bottom:1px solid #e9ece4;display:flex;justify-content:space-between;gap:15px}.history-item small{display:block;color:#7a8578;margin-top:5px}
+.modal{display:none;position:fixed;inset:0;background:#1727198a;z-index:10;align-items:center;justify-content:center;padding:18px}.modal.open{display:flex}.dialog{width:min(500px,100%);background:#fff;border-radius:20px;padding:25px;box-shadow:0 20px 70px #0003}.dialog h2{margin:0 0 8px}.dialog p{font-size:14px;color:#697668;line-height:1.5}.close{float:right;border:0;background:#edf2e8;border-radius:8px;padding:7px 10px;cursor:pointer}.upload{border:2px dashed #bdd0b6;border-radius:14px;padding:28px;text-align:center;background:#f7faf3;margin:18px 0}.upload input{max-width:100%;margin-top:12px}.result{display:none;background:#edf5e7;border-radius:12px;padding:14px;margin-top:14px;font-size:14px;line-height:1.5}
+@media(max-width:900px){.app{grid-template-columns:180px 1fr}.content{padding:24px 22px}.layout{grid-template-columns:1fr}.hero-bg{height:520px}.right-col{display:none}.scan-card{max-width:550px}}
+@media(max-width:600px){.app{display:block}.sidebar{padding:14px;gap:12px;border-right:0;border-bottom:1px solid #dfe5d8}.brand{font-size:20px}.tagline,.side-bottom{display:none}.nav{display:flex;overflow:auto;gap:5px}.nav button{white-space:nowrap;padding:9px 12px;font-size:13px}.content{padding:20px 15px 100px}.welcome h1{font-size:23px}.tts-card{align-items:flex-start;gap:10px;padding:10px;max-width:100%;width:100%}.tts-button{font-size:14px;padding:12px 13px;white-space:normal}.tts-copy{font-size:12px;min-width:0}.tts-toggle{width:100%;justify-content:center}.ai-fab{right:14px;bottom:14px;width:58px;height:58px}.layout{margin-top:24px}.scan-card{height:auto;min-height:175px;padding:20px}.panel{padding:15px}.useful{grid-template-columns:repeat(2,1fr)}.stats{grid-template-columns:1fr}.crop-grid{grid-template-columns:1fr}.diagnosis{gap:9px}.severity{padding:6px 8px}.hero-bg{height:490px}}
+
+/* Functional off-canvas sliding navigation */
+.app{display:block!important;min-height:100vh}
+.sidebar{position:fixed!important;top:0;left:0;bottom:0;width:260px;max-width:85vw;height:100dvh;overflow-y:auto;z-index:1002;transform:translateX(-105%);transition:transform .28s ease;box-shadow:8px 0 28px rgba(25,50,28,.16);padding:28px 18px!important;border-right:1px solid #dbe4d4!important;border-bottom:0!important}
+.sidebar.is-open{transform:translateX(0)}
+body.sidebar-open{overflow:hidden}
+main{width:100%;min-width:0}
+.sidebar-overlay{position:fixed;inset:0;background:rgba(20,35,22,.42);z-index:1000;opacity:0;visibility:hidden;transition:opacity .28s ease,visibility .28s ease}
+.sidebar-overlay.is-visible{opacity:1;visibility:visible}
+.menu-toggle{position:fixed;left:16px;top:16px;z-index:1003;width:48px;height:48px;border:1px solid #d9e4d3;border-radius:12px;background:#fff;color:#28623b;box-shadow:0 4px 16px rgba(25,50,28,.14);font-size:25px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.menu-toggle:hover{background:#eef5e9}
+.menu-toggle:focus-visible,.sidebar button:focus-visible{outline:3px solid #f0bf45;outline-offset:3px}
+.content{padding-top:78px}
+@media(max-width:600px){.sidebar{padding:22px 16px!important;gap:18px!important}.nav{display:grid!important;overflow:visible!important}.nav button{white-space:normal!important;padding:12px 14px!important;font-size:15px!important}.content{padding:78px 15px 100px!important}}
+@media(prefers-reduced-motion:reduce){.sidebar,.sidebar-overlay{transition:none}}
+
+
+/* Reliable off-canvas sliding navigation */
+html, body { min-height: 100%; }
+.app { display: block !important; min-height: 100vh; }
+.sidebar {
+  position: fixed !important;
+  top: 0 !important; bottom: 0 !important; left: 0 !important; right: auto !important;
+  width: 280px !important; max-width: min(86vw, 320px) !important;
+  height: 100vh !important; height: 100dvh !important;
+  display: flex !important; flex-direction: column !important;
+  overflow-y: auto !important; z-index: 10002 !important;
+  transform: translate3d(-110%, 0, 0) !important;
+  transition: transform 320ms cubic-bezier(.22,.61,.36,1) !important;
+  visibility: hidden !important; pointer-events: none !important;
+  box-shadow: 8px 0 28px rgba(25,50,28,.18) !important;
+  padding: 28px 18px !important;
+  background: #eef2e7 !important;
+}
+.sidebar.is-open {
+  transform: translate3d(0, 0, 0) !important;
+  visibility: visible !important; pointer-events: auto !important;
+}
+.sidebar-overlay {
+  position: fixed !important; inset: 0 !important; z-index: 10001 !important;
+  background: rgba(20,35,22,.48) !important;
+  opacity: 0 !important; visibility: hidden !important; pointer-events: none !important;
+  transition: opacity 320ms ease, visibility 320ms ease !important;
+}
+.sidebar-overlay.is-visible {
+  opacity: 1 !important; visibility: visible !important; pointer-events: auto !important;
+}
+.menu-toggle {
+  position: fixed !important; left: 16px !important; top: 16px !important;
+  z-index: 10003 !important; width: 48px !important; height: 48px !important;
+  display: flex !important; align-items: center !important; justify-content: center !important;
+  border: 1px solid #d9e4d3 !important; border-radius: 12px !important;
+  background: #fff !important; color: #28623b !important;
+  box-shadow: 0 4px 16px rgba(25,50,28,.14) !important;
+  font-size: 26px !important; line-height: 1 !important; cursor: pointer !important;
+}
+body.sidebar-open { overflow: hidden !important; }
+.content { padding-top: 78px !important; }
+@media (prefers-reduced-motion: reduce) {
+  .sidebar, .sidebar-overlay { transition: none !important; }
+}
+
+</style></head>
+<body>
+<button class="menu-toggle" id="menuToggle" type="button" aria-label="Open navigation menu" aria-controls="siteSidebar" aria-expanded="false">☰</button>
+<div class="sidebar-overlay" id="sidebarOverlay" aria-hidden="true"></div>
+<div class="app">
+<aside class="sidebar" id="siteSidebar" aria-label="Main navigation">
+<div><div class="brand">🌱 CropSathi</div><div class="tagline">Your Crop Health Companion</div></div>
+<nav class="nav" aria-label="Main navigation">
+<button class="active" data-page="dashboard">Dashboard</button><button data-page="diagnosis">Diagnosis</button><button data-page="crops">My Crops</button><button data-page="history">History</button><button data-page="knowledge">Knowledge</button><button data-page="support">Support</button><button data-page="settings">Settings</button>
+</nav><div class="side-bottom">Growing healthier crops,<br>one leaf at a time. <br><br>CropSathi · Plant care made simpler</div>
+</aside>
+<main><div class="hero-bg"></div><div class="content">
+<section class="section-view dashboard show" id="dashboard">
+<div class="tts-card" aria-label="Listen to CropSathi instructions">
+<button class="tts-button" id="listenBtn" aria-label="Listen to this page"><span aria-hidden="true">🔊</span> Listen to this page</button>
+<button class="tts-toggle" id="tapReadToggle" aria-pressed="false"><span aria-hidden="true">👆</span> Tap-to-read: OFF</button>
+<div class="tts-copy"><strong>Need help reading?</strong><br>Tap here and CropSathi will read the instructions aloud.<div class="tts-status" id="ttsStatus" aria-live="polite">Audio starts when you tap.</div></div>
+</div>
+<header class="welcome"><div><h1>What is happening to your crop?</h1><p>Take or upload a clear photo. CropSathi can help you check for possible crop problems.</p></div></header>
+<div class="layout"><div class="left-col">
+<div class="scan-card"><div class="scan-copy"><h2>Check your crop</h2><p>Take a photo or choose one from your phone.</p><div class="feature-actions"><button class="primary" id="scanBtn">📷 Take a photo</button><button class="secondary" id="uploadBtn">🖼 Upload photo</button></div></div></div>
+<div class="panel"><h3 class="panel-title">Your crop checks</h3><p style="font-size:14px;line-height:1.5;color:#657268;margin:0">After you add a photo, you can review it here. CropSathi will not guess a disease until an AI model is connected.</p></div>
+<div class="panel"><h3 class="panel-title">Useful shortcuts</h3><div class="useful"><button data-page="history">↗<br>View History</button><button data-page="crops">♧<br>My Crops</button><button data-page="knowledge">✳<br>Learn About Diseases</button><button data-page="support">♡<br>Get Support</button></div></div>
+</div><div class="right-col"><div class="ai-help-card"><div class="eyebrow">Your farming assistant</div><h3>Need help with your crop?</h3><p>Get simple guidance on taking crop photos, checking common symptoms, and knowing when to ask an agriculture expert.</p><button class="ai-help-button" id="openAIFromCard" type="button">✦ Ask CropSathi AI</button></div><div class="tip scheme-card">
+<div class="eyebrow">Government support</div>
+<h3>Check Government Schemes</h3>
+<p>Explore government support for farmers, including financial assistance, crop insurance, farming equipment, and other agricultural benefits.</p>
+<a class="scheme-button" href="https://agriwelfare.gov.in/" target="_blank" rel="noopener noreferrer">🌾 Explore Schemes →</a>
+<div class="status"><span class="dot"></span> Official agriculture information</div>
+</div></div></div>
+</section>
+<section class="section-view" id="diagnosis"><h1 class="section-heading">Leaf diagnosis</h1><p class="sub">Upload a clear plant-leaf photo to start a diagnosis workflow.</p><div class="panel" style="max-width:620px"><h3 class="panel-title">New diagnosis</h3><p style="font-size:14px;color:#748071">Choose a well-lit photo. Include the affected area and, if possible, the whole leaf.</p><button class="primary" id="scanBtn2" style="background:#347743;color:white">＋ Upload leaf photo</button><p style="font-size:12px;color:#92998e;margin-top:14px">Demo interface: this prototype does not run a trained disease-detection model.</p></div></section>
+<section class="section-view" id="crops"><h1 class="section-heading">My Crops</h1><p class="sub">Keep track of your plants and their growing conditions.</p><div class="crop-grid"><div class="crop"><span class="pill">Being monitored</span><h3 style="margin-top:12px">🥔 Potato</h3><p>Watch for dark leaf spots, yellowing, and changes in plant growth.</p><button class="primary crop-check">View care tips</button></div><div class="crop"><span class="pill">Add details</span><h3 style="margin-top:12px">＋ Add a crop</h3><p>Start a simple record for another crop in your field or garden.</p><button class="primary" id="addCrop">Add crop</button></div></div></section>
+<section class="section-view" id="history"><h1 class="section-heading">Diagnosis history</h1><p class="sub">A record of recent checks.</p><div class="panel"><div class="history-item"><div><strong>Potato · Early Blight</strong><small>Today · Example record</small></div><span class="severity">Moderate</span></div><div class="history-item"><div><strong>Potato · Routine check</strong><small>Yesterday · Example record</small></div><span class="pill">No issue noted</span></div><p style="font-size:12px;color:#899186;margin-top:15px">Sample records shown for this prototype.</p></div></section>
+<section class="section-view" id="knowledge"><h1 class="section-heading">Crop knowledge</h1><p class="sub">Quick field guides to help you observe crop health.</p><div class="crop-grid"><div class="crop"><h3>🍂 Early blight</h3><p>Often appears as brown spots with concentric rings on older leaves. Similar symptoms can have other causes, so inspect the whole plant.</p><span class="pill">Potato care</span></div><div class="crop"><h3>💧 Watering basics</h3><p>Water near the soil, avoid prolonged leaf wetness when possible, and adapt watering to soil and weather conditions.</p><span class="pill">Daily practice</span></div><div class="crop"><h3>🔎 Regular inspection</h3><p>Look under leaves for insects and check for spots, curling, yellowing, or sudden wilting.</p><span class="pill">Prevention</span></div><div class="crop"><h3>🌱 Healthy soil</h3><p>Good drainage and balanced nutrients support healthy roots. Avoid adding fertilizer without understanding the crop’s needs.</p><span class="pill">Soil health</span></div></div></section>
+<section class="section-view" id="support"><h1 class="section-heading">How can we help?</h1><p class="sub">Find your way around CropSathi.</p><div class="panel" style="max-width:600px"><h3>Using diagnosis</h3><p style="color:#71806f;font-size:14px;line-height:1.6">Take a sharp photo in natural light, avoid heavy shadows, and include the affected leaf. Treat any automated result as a preliminary clue, not a confirmed diagnosis.</p><h3>Need expert advice?</h3><p style="color:#71806f;font-size:14px;line-height:1.6">For severe or spreading crop damage, consult a local agricultural extension officer or plant-health specialist.</p><button class="primary" id="supportBtn">Send feedback</button></div></section>
+<section class="section-view" id="settings"><h1 class="section-heading">Settings</h1><p class="sub">Personalise your CropSathi experience.</p><div class="panel" style="max-width:600px"><label style="display:block;font-weight:700;margin-bottom:8px" for="farmerName">Your name</label><input id="farmerName" placeholder="Enter your name" style="width:100%;padding:12px;border:1px solid #dce4d7;border-radius:9px"><label style="display:block;font-weight:700;margin:18px 0 8px" for="cropType">Primary crop</label><select id="cropType" style="width:100%;padding:12px;border:1px solid #dce4d7;border-radius:9px"><option>Potato</option><option>Rice</option><option>Tomato</option><option>Maize</option><option>Other</option></select><button class="primary" id="saveSettings" style="margin-top:18px;background:#347743;color:white">Save preferences</button><p id="settingsMsg" style="font-size:13px;color:#4c8147"></p></div></section>
+</div></main></div>
+<button class="ai-fab" id="aiFab" aria-label="Get help from CropSathi AI" aria-expanded="false">✦<span>HELP</span></button>
+<div class="ai-panel" id="aiPanel" role="dialog" aria-label="CropSathi quick help"><button class="close" id="closeAI" aria-label="Close help">✕</button><h3>Ask CropSathi</h3><p>Choose what you need help with.</p><div class="ai-choices"><button data-answer="photo">How do I take a good photo?</button><button data-answer="disease">How can I check a crop problem?</button><button data-answer="human">When should I ask an expert?</button></div><div class="ai-answer" id="aiAnswer" aria-live="polite"></div></div>
+<div class="modal" id="scanModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><div class="dialog"><button class="close" id="closeModal" aria-label="Close">✕</button><h2 id="modalTitle">Check your crop</h2><p>Choose a photo from your gallery, or use your phone camera.</p><div class="upload">🌿<br><strong>Choose or take a crop photo</strong><br><input id="leafFile" type="file" accept="image/\*" capture="environment"><div id="preview"></div></div><button class="primary" id="analyze" style="background:#347743;color:white">Review photo</button><div class="result" id="result">Photo selected. This demo does not have a trained AI model connected, so it cannot reliably identify a disease. Compare visible symptoms with the knowledge guides or consult a local agricultural expert.</div></div></div>
+<script>
+const pages=[...document.querySelectorAll('.section-view')], nav=[...document.querySelectorAll('[data-page]')];
+function showPage(id){pages.forEach(p=>p.classList.toggle('show',p.id===id));document.querySelectorAll('.nav [data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===id));window.scrollTo({top:0,behavior:'smooth'})}
+const menuToggle = document.getElementById('menuToggle');
+const siteSidebar = document.getElementById('siteSidebar');
+const sidebarOverlay = document.getElementById('sidebarOverlay');
+function openSidebar(){
+  siteSidebar.classList.add('is-open');
+  sidebarOverlay.classList.add('is-visible');
+  document.body.classList.add('sidebar-open');
+  menuToggle.setAttribute('aria-expanded','true');
+  menuToggle.setAttribute('aria-label','Close navigation menu');
+  menuToggle.textContent='×';
+}
+function closeSidebar(){
+  siteSidebar.classList.remove('is-open');
+  sidebarOverlay.classList.remove('is-visible');
+  document.body.classList.remove('sidebar-open');
+  menuToggle.setAttribute('aria-expanded','false');
+  menuToggle.setAttribute('aria-label','Open navigation menu');
+  menuToggle.textContent='☰';
+}
+menuToggle.addEventListener('click', function(event){
+  event.preventDefault();
+  if (siteSidebar.classList.contains('is-open')) closeSidebar(); else openSidebar();
+});
+sidebarOverlay.addEventListener('click', closeSidebar);
+document.addEventListener('keydown', function(event){if(event.key==='Escape') closeSidebar();});
+nav.forEach(b=>b.addEventListener('click',()=>{showPage(b.dataset.page);closeSidebar()}));
+const modal=document.getElementById('scanModal');function openModal(){modal.classList.add('open')}function closeModal(){modal.classList.remove('open')}
+document.getElementById('scanBtn').onclick=()=>{document.getElementById('modalTitle').textContent='Take a crop photo';openModal();document.getElementById('leafFile').setAttribute('capture','environment')};document.getElementById('uploadBtn').onclick=()=>{document.getElementById('modalTitle').textContent='Upload a crop photo';openModal();document.getElementById('leafFile').removeAttribute('capture')};document.getElementById('scanBtn2').onclick=openModal;document.getElementById('closeModal').onclick=closeModal;modal.addEventListener('click',e=>{if(e.target===modal)closeModal()});
+document.getElementById('leafFile').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const url=URL.createObjectURL(f);document.getElementById('preview').innerHTML='';const img=document.createElement('img');img.src=url;img.alt='Selected leaf preview';img.style.cssText='max-width:100%;max-height:180px;margin-top:14px;border-radius:10px';document.getElementById('preview').appendChild(img);document.getElementById('result').style.display='none'});
+document.getElementById('analyze').onclick=()=>{if(!document.getElementById('leafFile').files.length){alert('Please choose a leaf photo first.');return}document.getElementById('result').style.display='block'};
+document.querySelectorAll('.crop-check').forEach(b=>b.onclick=()=>showPage('knowledge'));
+document.getElementById('addCrop').onclick=()=>alert('Crop records are a demo feature in this prototype.');
+document.getElementById('supportBtn').onclick=()=>{const msg=prompt('Tell us what you would improve:');if(msg)alert('Thanks for your feedback! This demo does not send it to a server.')};
+document.getElementById('saveSettings').onclick=()=>document.getElementById('settingsMsg').textContent='Preferences saved for this session.';
+// Text-to-speech starts only after a clear user action.
+const listenBtn=document.getElementById('listenBtn'), ttsStatus=document.getElementById('ttsStatus');
+const tapReadToggle=document.getElementById('tapReadToggle');
+let tapReadEnabled=false;
+function speakText(text){
+  const clean=(text||'').replace(/\s+/g,' ').trim();
+  if(!clean) return;
+  if(!('speechSynthesis' in window)){ttsStatus.textContent='Audio reading is not supported by this browser.';return;}
+  window.speechSynthesis.cancel();
+  const utter=new SpeechSynthesisUtterance(clean);
+  utter.lang='en-IN'; utter.rate=0.88;
+  utter.onstart=()=>{ttsStatus.textContent='Reading aloud…';};
+  utter.onend=()=>{ttsStatus.textContent=tapReadEnabled?'Tap any text to hear it.':'Finished reading. Tap to listen again.';};
+  utter.onerror=()=>{ttsStatus.textContent='Could not start audio. Check your device audio settings.';};
+  window.speechSynthesis.speak(utter);
+}
+function speakPage(){
+  if(!('speechSynthesis' in window)){ttsStatus.textContent='Audio reading is not supported by this browser.';return;}
+  if(window.speechSynthesis.speaking){
+    window.speechSynthesis.cancel();
+    listenBtn.innerHTML='<span aria-hidden="true">🔊</span> Listen to this page';
+    ttsStatus.textContent=tapReadEnabled?'Tap any text to hear it.':'Stopped. Tap to listen again.';
+    return;
+  }
+  const target=document.querySelector('#dashboard');
+  const text=[...target.querySelectorAll('h1,h2,h3,p,button,.panel-title')].map(e=>e.innerText.trim()).filter(Boolean).join('. ');
+  listenBtn.innerHTML='<span aria-hidden="true">⏹</span> Stop reading';
+  speakText(text);
+  ttsStatus.textContent='Reading this page aloud…';
+}
+listenBtn.addEventListener('click',speakPage);
+tapReadToggle.addEventListener('click',()=>{
+  tapReadEnabled=!tapReadEnabled;
+  tapReadToggle.setAttribute('aria-pressed',String(tapReadEnabled));
+  tapReadToggle.innerHTML=tapReadEnabled
+    ? '<span aria-hidden="true">👆</span> Tap-to-read: ON'
+    : '<span aria-hidden="true">👆</span> Tap-to-read: OFF';
+  ttsStatus.textContent=tapReadEnabled
+    ? 'Tap any heading, paragraph, menu item, or card to hear its text.'
+    : 'Tap-to-read is off. Use Listen to this page when needed.';
+  document.querySelectorAll('main h1,main h2,main h3,main p,main .panel,main .crop,main .tip, .nav button, .useful button').forEach(el=>{
+    el.classList.toggle('click-read-on',tapReadEnabled);
+    if(tapReadEnabled && !el.hasAttribute('tabindex')) el.setAttribute('tabindex','0');
+  });
+});
+// When enabled, speak the specific text under the pointer/finger.
+document.addEventListener('click',(event)=>{
+  if(!tapReadEnabled) return;
+  if(event.target.closest('#listenBtn,#tapReadToggle,#aiFab,#closeAI,#closeModal')) return;
+  if(event.target.closest('#scanModal')) return;
+  const el=event.target.closest('button,a,h1,h2,h3,h4,p,li,label,.panel,.crop,.tip,.stat,.history-item,.scan-card,.tts-copy');
+  if(!el) return;
+  const text=el.innerText || el.getAttribute('aria-label') || '';
+  if(text.trim()) speakText(text);
+},true);
+document.addEventListener('keydown',(event)=>{
+  if(!tapReadEnabled || !['Enter',' '].includes(event.key)) return;
+  const el=event.target.closest('main h1,main h2,main h3,main p,main .panel,main .crop,main .tip,.nav button,.useful button');
+  if(!el) return;
+  if(event.target.matches('button,a,input,select,textarea')) return;
+  event.preventDefault();
+  speakText(el.innerText);
+});
+const aiFab=document.getElementById('aiFab'),aiPanel=document.getElementById('aiPanel');function toggleAI(open){aiPanel.classList.toggle('open',open);aiFab.setAttribute('aria-expanded',String(open))}aiFab.onclick=()=>toggleAI(!aiPanel.classList.contains('open'));document.getElementById('openAIFromCard').onclick=()=>toggleAI(true);document.getElementById('closeAI').onclick=()=>toggleAI(false);
+const answers={photo:'Take the photo in daylight. Keep the affected leaf in focus, avoid shadows, and include the whole leaf if possible.',disease:'Tap Take a photo or Upload photo. CropSathi can show a preview, but this demo is not connected to a real disease-detection AI yet.',human:'If the damage spreads quickly, many plants are affected, or you are unsure what to do, contact a local agriculture extension officer or plant-health specialist.'};document.querySelectorAll('[data-answer]').forEach(b=>b.onclick=()=>{const box=document.getElementById('aiAnswer');box.textContent=answers[b.dataset.answer];box.style.display='block';if('speechSynthesis' in window){window\.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(box.textContent);u.lang='en-IN';u.rate=.9;window\.speechSynthesis.speak(u)}});
+</script></body></html>

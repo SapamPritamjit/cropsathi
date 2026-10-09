@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI4Seva — Crop Health &amp; Farmer Schemes</title>
+  <meta name="description" content="AI4Seva frontend: crop leaf disease screening and farmer scheme finder." />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+
+  <div class="app-shell" id="appShell">
+    <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
+      <div class="sidebar__brand">
+        <span class="brand__mark" aria-hidden="true">AI4</span>
+        <span class="brand__text">
+          <strong>AI4Seva</strong>
+          <small>Crop Health &amp; Schemes</small>
+        </span>
+      </div>
+
+      <nav class="sidebar__nav" aria-label="Sections">
+        <button class="nav-item is-active" type="button" data-view="dashboard" aria-current="page">
+          <span class="nav-item__icon" aria-hidden="true">⌂</span><span>Dashboard</span>
+        </button>
+        <button class="nav-item" type="button" data-view="diagnosis">
+          <span class="nav-item__icon" aria-hidden="true">✿</span><span>Crop Diagnosis</span>
+        </button>
+        <button class="nav-item" type="button" data-view="schemes">
+          <span class="nav-item__icon" aria-hidden="true">₹</span><span>Scheme Finder</span>
+        </button>
+        <button class="nav-item" type="button" data-view="models">
+          <span class="nav-item__icon" aria-hidden="true">∑</span><span>Models</span>
+        </button>
+        <button class="nav-item" type="button" data-view="crops">
+          <span class="nav-item__icon" aria-hidden="true">❦</span><span>My Crops</span>
+        </button>
+        <button class="nav-item" type="button" data-view="history">
+          <span class="nav-item__icon" aria-hidden="true">≡</span><span>History</span>
+        </button>
+        <button class="nav-item" type="button" data-view="insights">
+          <span class="nav-item__icon" aria-hidden="true">✦</span><span>AI Crop Insights</span>
+        </button>
+        <button class="nav-item" type="button" data-view="support">
+          <span class="nav-item__icon" aria-hidden="true">☎</span><span>Support</span>
+        </button>
+        <button class="nav-item" type="button" data-view="settings">
+          <span class="nav-item__icon" aria-hidden="true">⚙</span><span>Settings</span>
+        </button>
+      </nav>
+
+      <div class="sidebar__footer">
+        <div class="status-pill" id="healthPill" role="status" aria-live="polite">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span class="status-text" id="healthText">Checking backend…</span>
+        </div>
+        <p class="sidebar__note">Screening tool — not a confirmed diagnosis.</p>
+      </div>
+    </aside>
+
+    <div class="overlay" id="overlay" hidden></div>
+
+    <div class="content">
+      <header class="topbar">
+        <button class="menu-btn" id="menuToggle" type="button" aria-controls="sidebar" aria-expanded="false" aria-label="Open navigation menu">
+          <span aria-hidden="true">☰</span>
+        </button>
+        <div class="topbar__title">
+          <h1 id="viewTitle">Dashboard</h1>
+          <p id="viewSubtitle">Overview and quick actions</p>
+        </div>
+        <div class="topbar__voice">
+          <span class="tts-status" id="ttsStatus" role="status" aria-live="polite" hidden></span>
+          <button class="btn btn-ghost" id="readPageBtn" type="button" title="Read all visible content in the current view aloud using the browser voice">Read page</button>
+          <button class="btn btn-ghost" id="ttsPauseBtn" type="button" hidden>Pause</button>
+          <button class="btn btn-ghost" id="ttsStopBtn" type="button" hidden>Stop</button>
+        </div>
+      </header>
+
+      <main class="main" id="main-content">
+
+        <!-- DASHBOARD -->
+        <section class="view is-active" id="view-dashboard" aria-labelledby="viewTitle">
+          <div class="hero">
+            <div class="hero__inner">
+              <h2>Grow with confidence.</h2>
+              <p>Screen crop leaf photos for likely disease, and find official government support schemes.</p>
+              <div class="hero__actions">
+                <button class="btn btn-primary" type="button" data-goto="diagnosis">Start a diagnosis</button>
+                <button class="btn btn-secondary" type="button" data-goto="schemes">Find schemes</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-3">
+            <article class="card">
+              <h3 class="card__title">Backend status</h3>
+              <p class="card__body" id="dashHealth">Checking…</p>
+              <p class="muted-sm" id="dashHealthMeta">—</p>
+            </article>
+            <article class="card">
+              <h3 class="card__title">Supported crops</h3>
+              <p class="card__body" id="dashCrops">Loading crop list…</p>
+            </article>
+            <article class="card">
+              <h3 class="card__title">This session</h3>
+              <p class="card__body" id="dashSessionCount">0 predictions</p>
+              <p class="muted-sm">Kept in this browser tab only.</p>
+            </article>
+          </div>
+
+          <div class="section-head">
+            <h3>Quick actions</h3>
+          </div>
+          <div class="grid grid-2">
+            <button class="action-card" type="button" data-goto="diagnosis">
+              <span class="action-card__icon" aria-hidden="true">✿</span>
+              <span class="action-card__label">Diagnose a leaf</span>
+              <span class="action-card__desc">Upload a photo and get a model prediction.</span>
+            </button>
+            <button class="action-card" type="button" data-goto="schemes">
+              <span class="action-card__icon" aria-hidden="true">₹</span>
+              <span class="action-card__label">Farmer scheme finder</span>
+              <span class="action-card__desc">Search government agriculture schemes.</span>
+            </button>
+          </div>
+
+          <div class="section-head">
+            <h3>Recent predictions</h3>
+            <span class="badge badge-local">Session only</span>
+          </div>
+          <div id="dashRecentSummary" class="stack"></div>
+        </section>
+
+        <!-- DIAGNOSIS -->
+        <section class="view" id="view-diagnosis" aria-labelledby="viewTitle" hidden>
+          <div class="grid grid-2 grid--form">
+            <article class="card">
+              <h3 class="card__title">Upload a leaf photo</h3>
+              <p class="muted-sm">Use a clear, well-lit photo of a single leaf. The backend validates the image.</p>
+
+              <form id="diagnosisForm" novalidate>
+                <div class="field">
+                  <label for="diagnosisCrop">Crop</label>
+                  <select id="diagnosisCrop" name="crop" required>
+                    <option value="">Select a crop…</option>
+                  </select>
+                </div>
+
+                <div class="field">
+                  <span class="field__label" id="leafInputLabel">Leaf image</span>
+                  <div class="capture-actions" role="group" aria-labelledby="leafInputLabel">
+                    <button class="btn btn-secondary" id="takePhotoBtn" type="button" title="Open the device camera to take a new photo">Take a photo</button>
+                    <button class="btn btn-secondary" id="uploadPhotoBtn" type="button" title="Choose an existing image file">Upload an image</button>
+                  </div>
+                  <input id="leafCamera" name="fileCamera" type="file" accept="image/*" capture="environment" hidden />
+                  <input id="leafUpload" name="file" type="file" accept="image/jpeg,image/png,image/bmp,image/webp,image/tiff" hidden />
+                  <p class="field__hint">Opening the camera depends on your device and browser; on desktop use “Upload an image”. JPEG, PNG, BMP, WEBP or TIFF. Maximum 8 MB.</p>
+                </div>
+
+                <div class="preview" id="previewWrap" hidden>
+                  <img id="previewImg" class="preview__img" alt="Preview of the selected leaf photo" />
+                  <div class="preview__meta" id="previewMeta"></div>
+                </div>
+
+                <div class="form-status" id="diagnosisStatus" role="status" aria-live="polite" hidden></div>
+
+                <div class="form-actions">
+                  <button class="btn btn-primary" id="analyzeBtn" type="submit">Analyze leaf</button>
+                  <button class="btn btn-ghost" id="resetDiagnosisBtn" type="button" hidden>Analyze another</button>
+                </div>
+              </form>
+            </article>
+
+            <article class="card" id="resultCard">
+              <h3 class="card__title">Prediction</h3>
+              <div id="resultEmpty" class="empty-state">
+                <p>No prediction yet.</p>
+                <p class="muted-sm">Select a crop and an image, then choose “Analyze leaf”.</p>
+              </div>
+              <div id="resultBody" hidden></div>
+            </article>
+          </div>
+
+          <article class="card card--spaced">
+            <h3 class="card__title">Voice note transcription <span class="badge badge-aux">Backend</span></h3>
+            <p class="muted-sm">Record a short voice note, or upload an audio clip, and read it back as text. Microphone access is requested only when you press Record. Transcription uses the backend's Whisper model; the optional language is a hint and support depends on that model.</p>
+
+            <div class="grid grid-2">
+              <div class="field">
+                <label for="transcribeLanguage">Language hint (optional)</label>
+                <select id="transcribeLanguage">
+                  <option value="">Auto-detect</option>
+                  <option value="en">English (en)</option>
+                  <option value="hi">Hindi (hi)</option>
+                  <option value="bn">Bengali (bn)</option>
+                  <option value="ta">Tamil (ta)</option>
+                  <option value="te">Telugu (te)</option>
+                  <option value="mr">Marathi (mr)</option>
+                  <option value="ml">Malayalam (ml)</option>
+                  <option value="gu">Gujarati (gu)</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="transcribeFile">Audio file (alternative to mic)</label>
+                <input id="transcribeFile" type="file" accept="audio/*,video/mp4,video/webm" />
+                <p class="field__hint">wav, mp3, m4a, ogg, webm, flac. Maximum 25 MB.</p>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button class="btn btn-secondary" id="recordBtn" type="button">Record</button>
+              <button class="btn btn-ghost" id="stopRecordBtn" type="button" hidden>Stop &amp; transcribe</button>
+            </div>
+            <div class="form-status" id="transcribeStatus" role="status" aria-live="polite" hidden></div>
+            <div class="transcript" id="transcriptOut" hidden></div>
+          </article>
+        </section>
+
+        <!-- SCHEMES -->
+        <section class="view" id="view-schemes" aria-labelledby="viewTitle" hidden>
+          <article class="card">
+            <h3 class="card__title">Farmer scheme finder</h3>
+            <p class="muted-sm">Search official agriculture schemes and resources. A verified domain does <strong>not</strong> confirm eligibility or that a scheme is currently open.</p>
+
+            <form id="schemeForm" class="scheme-form" novalidate>
+              <div class="grid grid-2">
+                <div class="field">
+                  <label for="schemeQuery">Search text (optional)</label>
+                  <input id="schemeQuery" name="q" type="text" placeholder="e.g. seed subsidy" autocomplete="off" />
+                </div>
+                <div class="field">
+                  <label for="schemeCrop">Crop (optional)</label>
+                  <select id="schemeCrop" name="crop">
+                    <option value="">Any crop</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="schemeNeed">Support need (optional)</label>
+                  <select id="schemeNeed" name="need">
+                    <option value="">Any need</option>
+                    <option value="seeds">Seeds</option>
+                    <option value="fertilizer">Fertilizer</option>
+                    <option value="credit">Credit / loan</option>
+                    <option value="insurance">Insurance</option>
+                    <option value="irrigation">Irrigation</option>
+                    <option value="machinery">Machinery</option>
+                    <option value="market">Market access</option>
+                    <option value="training">Training</option>
+                    <option value="pest_disease">Pest / disease support</option>
+                    <option value="general">General farmer welfare</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="schemeDistrict">District (optional)</label>
+                  <input id="schemeDistrict" name="district" type="text" placeholder="e.g. Imphal West" autocomplete="off" />
+                </div>
+                <div class="field">
+                  <label for="schemeLimit">Max results</label>
+                  <select id="schemeLimit" name="limit">
+                    <option value="5" selected>5</option>
+                    <option value="10">10</option>
+                    <option value="15">15</option>
+                    <option value="20">20</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="schemeLanguage">Language (optional)</label>
+                  <select id="schemeLanguage" name="language">
+                    <option value="">Default (en)</option>
+                    <option value="en">English (en)</option>
+                    <option value="hi">Hindi (hi)</option>
+                    <option value="bn">Bengali (bn)</option>
+                    <option value="ta">Tamil (ta)</option>
+                    <option value="te">Telugu (te)</option>
+                    <option value="mr">Marathi (mr)</option>
+                  </select>
+                  <p class="field__hint">Recorded with the query; results are not translated.</p>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button class="btn btn-primary" id="schemeSearchBtn" type="submit">Search schemes</button>
+                <button class="btn btn-ghost" id="schemeClearBtn" type="button">Clear</button>
+              </div>
+            </form>
+          </article>
+
+          <div class="section-head">
+            <h3>Results</h3>
+            <span class="muted-sm" id="schemeRetrieved"></span>
+          </div>
+          <p class="muted-sm" id="schemeSummary" hidden></p>
+          <div class="form-status" id="schemeStatus" role="status" aria-live="polite" hidden></div>
+          <div id="schemeResults" class="stack"></div>
+        </section>
+
+        <!-- MODELS -->
+        <section class="view" id="view-models" aria-labelledby="viewTitle" hidden>
+          <article class="card">
+            <div class="card__head">
+              <h3 class="card__title">Model inventory</h3>
+              <button class="btn btn-ghost" id="reloadModelsBtn" type="button">Reload</button>
+            </div>
+            <p class="muted-sm">Reference metadata reported by the backend. Any reported accuracy is the provider's own figure and is <strong>not</strong> reproduced locally.</p>
+            <div class="form-status" id="modelsStatus" role="status" aria-live="polite" hidden></div>
+            <div id="modelsList" class="stack"></div>
+          </article>
+
+          <article class="card card--spaced">
+            <h3 class="card__title">Class sets by crop</h3>
+            <p class="muted-sm">Baseline and fine-tuned models can use different class sets. A live side-by-side prediction is only meaningful when the class sets align.</p>
+            <div class="field">
+              <label for="comparisonCrop">Crop</label>
+              <select id="comparisonCrop">
+                <option value="">Select a crop…</option>
+              </select>
+            </div>
+            <div class="form-status" id="comparisonStatus" role="status" aria-live="polite" hidden></div>
+            <div id="comparisonBody" class="stack"></div>
+          </article>
+        </section>
+
+        <!-- MY CROPS -->
+        <section class="view" id="view-crops" aria-labelledby="viewTitle" hidden>
+          <article class="card">
+            <div class="card__head">
+              <h3 class="card__title">My Crops</h3>
+              <span class="badge badge-local">Local demo · this session</span>
+            </div>
+            <p class="muted-sm">This list lives only in this browser tab. It is <strong>not</strong> saved to a server and does not sync across devices.</p>
+            <form id="cropForm" class="inline-form" novalidate>
+              <div class="field">
+                <label for="cropNameInput">Add a crop</label>
+                <input id="cropNameInput" type="text" placeholder="e.g. Rice — field 2" autocomplete="off" />
+              </div>
+              <button class="btn btn-secondary" type="submit">Add</button>
+            </form>
+            <div id="cropList" class="stack"></div>
+          </article>
+        </section>
+
+        <!-- HISTORY -->
+        <section class="view" id="view-history" aria-labelledby="viewTitle" hidden>
+          <article class="card">
+            <div class="card__head">
+              <h3 class="card__title">Prediction history</h3>
+              <span class="badge badge-local">Local demo · this session</span>
+            </div>
+            <p class="muted-sm">Only predictions you run in this tab appear here. History is not stored on the backend.</p>
+            <div class="form-actions">
+              <button class="btn btn-ghost" id="clearHistoryBtn" type="button">Clear history</button>
+            </div>
+            <div id="historyList" class="stack"></div>
+          </article>
+        </section>
+
+        <!-- AI CROP INSIGHTS -->
+        <section class="view" id="view-insights" aria-labelledby="viewTitle" hidden>
+          <div class="grid grid-2 grid--form">
+            <article class="card">
+              <div class="card__head">
+                <h3 class="card__title">Crop insights session</h3>
+                <span class="badge badge-local">Session only</span>
+              </div>
+              <p class="muted-sm">This workspace keeps one conversation for one crop while you keep exploring. It lives in this browser tab only — nothing is saved to a server or an account.</p>
+
+              <div class="field">
+                <label for="insightCrop">Crop for this session</label>
+                <select id="insightCrop">
+                  <option value="">Select a crop…</option>
+                </select>
+              </div>
+              <p class="session-meta" id="insightSessionMeta">No active session yet. Choose a crop to begin.</p>
+
+              <div class="form-status is-warn" id="insightAINotice" role="note">
+                AI answering is unavailable: the backend has no general crop Q&amp;A endpoint, so no answer can be generated. Questions you ask are recorded in the conversation, but nothing is sent to an AI model. Prediction summaries and charts below use real backend features.
+              </div>
+
+              <div class="transcript transcript--session" id="insightTranscript" aria-live="polite" aria-label="Crop insights conversation">
+                <p class="muted-sm">The conversation will appear here.</p>
+              </div>
+
+              <form id="insightForm" novalidate>
+                <div class="field">
+                  <label for="insightTopic">Topic</label>
+                  <select id="insightTopic">
+                    <option value="disease_symptoms">Disease symptoms</option>
+                    <option value="disease_prevention">Disease prevention</option>
+                    <option value="crop_care">Crop care</option>
+                    <option value="irrigation">Irrigation</option>
+                    <option value="nutrients">Nutrients</option>
+                    <option value="prediction_interpretation">Interpreting a prediction</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="insightQuestion">Your question</label>
+                  <input id="insightQuestion" type="text" placeholder="e.g. What causes yellowing leaves?" autocomplete="off" />
+                </div>
+                <div class="form-actions">
+                  <button class="btn btn-primary" id="insightAskBtn" type="submit">Ask</button>
+                  <button class="btn btn-ghost" id="insightClearBtn" type="button">Clear session</button>
+                </div>
+              </form>
+              <div class="form-status" id="insightStatus" role="status" aria-live="polite" hidden></div>
+            </article>
+
+            <article class="card">
+              <h3 class="card__title">Interpret an existing prediction <span class="badge badge-aux">Backend</span></h3>
+              <p class="muted-sm">Uses your most recent diagnosis from this session and the backend's <code>/speech/response</code> endpoint to produce a cautious, farmer-friendly sentence. This is a prediction summary — not a general AI chat answer. It is added to the conversation above.</p>
+              <div class="form-actions">
+                <button class="btn btn-secondary" id="insightSummarizeBtn" type="button">Generate summary</button>
+              </div>
+              <div class="form-status" id="insightSummaryStatus" role="status" aria-live="polite" hidden></div>
+              <div class="transcript" id="insightSummaryOut" hidden></div>
+            </article>
+          </div>
+
+          <article class="card card--spaced">
+            <div class="card__head">
+              <h3 class="card__title">Charts</h3>
+              <span class="muted-sm" id="chartSessionHint"></span>
+            </div>
+            <p class="muted-sm">Every chart below is built from real backend data and stays available while you explore. No prevalence, outbreak, trend or yield data is invented.</p>
+            <div class="chart-controls">
+              <div class="field">
+                <label for="chartType">Chart</label>
+                <select id="chartType">
+                  <option value="diagnosis">Diagnosis probabilities</option>
+                  <option value="models">Model class counts</option>
+                  <option value="classsets">Class-set overlap</option>
+                </select>
+              </div>
+              <div class="field" id="chartCropField" hidden>
+                <label for="chartCrop">Crop</label>
+                <select id="chartCrop">
+                  <option value="">Select a crop…</option>
+                </select>
+              </div>
+              <div class="field field--action">
+                <button class="btn btn-secondary" id="chartRenderBtn" type="button">Update chart</button>
+              </div>
+            </div>
+            <div class="form-status" id="chartStatus" role="status" aria-live="polite" hidden></div>
+            <figure class="chart" id="chartFigure" hidden>
+              <figcaption id="chartTitle"></figcaption>
+              <div id="chartArea" class="chart__area"></div>
+              <p class="chart-caption" id="chartCaption"></p>
+            </figure>
+            <div id="chartEmpty" class="empty-state">
+              <p>Choose a chart and select “Update chart”.</p>
+              <p class="muted-sm">The diagnosis chart needs a prediction from the Crop Diagnosis section in this session.</p>
+            </div>
+          </article>
+        </section>
+
+
+
+        <!-- SUPPORT -->
+        <section class="view" id="view-support" aria-labelledby="viewTitle" hidden>
+          <div class="grid grid-2">
+            <article class="card">
+              <h3 class="card__title">Get help</h3>
+              <ul class="bullets">
+                <li>Contact your local Krishi Vigyan Kendra or agriculture extension officer.</li>
+                <li>For scheme help, visit your Block Agriculture Office with land documents.</li>
+                <li>For app issues, note the error message shown and the time it occurred.</li>
+              </ul>
+            </article>
+            <article class="card">
+              <h3 class="card__title">Report a problem</h3>
+              <p class="muted-sm">Feedback is not yet sent to a server in this build. Please share issues with your project operator.</p>
+              <div class="field">
+                <label for="feedbackText">Describe the issue (local only)</label>
+                <textarea id="feedbackText" rows="4" placeholder="What went wrong?"></textarea>
+              </div>
+              <div class="form-actions">
+                <button class="btn btn-secondary" id="feedbackBtn" type="button">Copy to clipboard</button>
+              </div>
+              <div class="form-status" id="feedbackStatus" role="status" aria-live="polite" hidden></div>
+            </article>
+          </div>
+        </section>
+
+        <!-- SETTINGS -->
+        <section class="view" id="view-settings" aria-labelledby="viewTitle" hidden>
+          <div class="grid grid-2">
+            <article class="card">
+              <h3 class="card__title">Voice</h3>
+              <div class="setting-row">
+                <label class="switch">
+                  <input type="checkbox" id="voiceToggle" />
+                  <span class="switch__track" aria-hidden="true"><span class="switch__thumb"></span></span>
+                  <span class="switch__label">Voice output</span>
+                </label>
+              </div>
+              <p class="muted-sm">Voice output is only started by you — it never plays on its own. Prediction summaries read when you press <strong>Listen to result</strong> (backend voice <code>/speech/speak</code>, WAV, with a browser fallback). Turning voice off cancels any backend playback and the page reader.</p>
+              <p class="muted-sm">The <strong>Read page</strong> button in the top bar uses the browser's own speech synthesis (not the backend) to read the whole active page when you click it, with Pause/Resume and Stop. Each card, chart and result also has its own speaker button to read just that section.</p>
+              <p class="muted-sm">A small speaker button on each card, chart and insight turn (<strong>Read this section aloud</strong>) reads only that section. Pause/Resume and Stop apply to whichever reading is active.</p>
+              <div class="form-actions">
+                <button class="btn btn-ghost" id="stopSpeechBtn" type="button">Stop audio</button>
+              </div>
+            </article>
+
+            <article class="card">
+              <h3 class="card__title">Backend connection</h3>
+              <div class="kv"><span class="kv__k">API base URL</span><span class="kv__v" id="apiBaseDisplay">—</span></div>
+              <div class="kv"><span class="kv__k">Source</span><span class="kv__v" id="apiBaseSource">—</span></div>
+              <p class="muted-sm">Set <code>window.CROPSATHI_API_BASE_URL</code> before <code>app.js</code> loads to override the default <code>http://127.0.0.1:8000</code>.</p>
+              <div class="form-actions">
+                <button class="btn btn-secondary" id="recheckHealthBtn" type="button">Re-check backend</button>
+              </div>
+            </article>
+
+            <article class="card">
+              <h3 class="card__title">Local data</h3>
+              <p class="muted-sm">Session crops and history are held in memory only. Clearing removes them for this tab.</p>
+              <div class="form-actions">
+                <button class="btn btn-ghost" id="clearSessionBtn" type="button">Clear session data</button>
+              </div>
+            </article>
+
+            <article class="card">
+              <h3 class="card__title">About</h3>
+              <p class="muted-sm">AI4Seva screens crop leaf images and searches government agriculture schemes. Predictions are model outputs, not confirmed diagnoses. Scheme results do not establish eligibility.</p>
+            </article>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

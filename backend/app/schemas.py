@@ -217,3 +217,40 @@ class ComparisonResponse(BaseModel):
     class_sets: ClassSets
     model_comparison: ModelComparison
     disclaimer: str
+
+
+# --- Increment 4: Farmer Scheme Finder search --------------------------------
+
+
+class SchemeSearchQuery(BaseModel):
+    """The validated inputs echoed back with the search results."""
+
+    q: str | None = None
+    crop: str | None = None
+    district: str | None = None
+    need: str | None = None
+
+
+class SchemeSearchResultItem(BaseModel):
+    """One search hit with its official-source classification.
+
+    ``source_type`` is ``official_manipur`` / ``official_goi`` / ``other`` and
+    ``verified`` is true only for explicitly allow-listed official hosts.
+    """
+
+    title: str
+    url: str
+    snippet: str
+    source_domain: str | None = None
+    source_type: str
+    verified: bool
+
+
+class SchemeSearchResponse(BaseModel):
+    query: SchemeSearchQuery
+    results: list[SchemeSearchResultItem] = Field(default_factory=list)
+    result_count: int
+    official_count: int
+    retrieved_at: str
+    disclaimer: str
+    language: str

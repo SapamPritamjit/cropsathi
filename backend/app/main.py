@@ -1,8 +1,8 @@
 """AI4Seva FastAPI application entry point.
 
-Exposes health, crop-information, image-prediction, model-comparison and speech
-endpoints with a consistent JSON error envelope and explicit, environment-driven
-CORS for browser clients.
+Exposes health, crop-information, image-prediction, model-comparison, speech and
+farmer-scheme-search endpoints with a consistent JSON error envelope and
+explicit, environment-driven CORS for browser clients.
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .config import settings
 from .errors import ApiError
-from .routers import comparison, crops, health, predict, speech
+from .routers import comparison, crops, health, predict, schemes, speech
 
 
 def _error(status_code: int, code: str, message: str, details=None) -> JSONResponse:
@@ -80,6 +80,7 @@ def create_app() -> FastAPI:
     application.include_router(predict.router)
     application.include_router(comparison.router)
     application.include_router(speech.router)
+    application.include_router(schemes.router)
 
     application.add_exception_handler(ApiError, api_error_handler)
     application.add_exception_handler(StarletteHTTPException, http_exception_handler)
