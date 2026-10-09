@@ -1,0 +1,73 @@
+{
+  "architecture": "convnext_small",
+  "num_classes": 14,
+  "num_features": 768,
+  "label_names": [
+    "Bacterial Blight",
+    "Bacterial Leaf Streak",
+    "Bacterial Panicle Blight",
+    "Blast",
+    "Brown Spot",
+    "Dead Heart",
+    "Downy Mildew",
+    "Healthy",
+    "Hispa",
+    "Leaf Scald",
+    "Narrow Brown Leaf Spot",
+    "Neck Blast",
+    "Sheath Blight",
+    "Tungro"
+  ],
+  "label_descriptions": {
+    "Bacterial Blight": "Bacterial_blight",
+    "Bacterial Leaf Streak": "Bacterial_leaf_streak",
+    "Bacterial Panicle Blight": "Bacterial_panicle_blight",
+    "Blast": "Blast",
+    "Brown Spot": "Brown_spot",
+    "Dead Heart": "Dead_heart",
+    "Downy Mildew": "Downy_mildew",
+    "Healthy": "Healthy",
+    "Hispa": "Hispa",
+    "Leaf Scald": "Leaf_scald",
+    "Narrow Brown Leaf Spot": "Narrow_brown_leaf_spot",
+    "Neck Blast": "Neck_blast",
+    "Sheath Blight": "Sheath_blight",
+    "Tungro": "Tungro"
+  },
+  "pretrained_cfg": {
+    "custom_load": false,
+    "input_size": [
+      3,
+      224,
+      224
+    ],
+    "test_input_size": [
+      3,
+      288,
+      288
+    ],
+    "fixed_input_size": false,
+    "interpolation": "bilinear",
+    "crop_pct": 1.0,
+    "test_crop_pct": 1.0,
+    "crop_mode": "center",
+    "mean": [
+      0.485,
+      0.456,
+      0.406
+    ],
+    "std": [
+      0.229,
+      0.224,
+      0.225
+    ],
+    "num_classes": 1000,
+    "pool_size": [
+      7,
+      7
+    ],
+    "first_conv": "stem.0",
+    "classifier": "head.fc",
+    "license": "apache-2.0"
+  }
+}

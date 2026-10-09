@@ -1,0 +1,61 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# --- Virtual environments ---
+.venv/
+venv/
+env/
+ENV/
+
+# --- Secrets (keep .env.example) ---
+.env
+.env.*
+!.env.example
+
+# --- Model weights / large artifacts (ignore weights, keep metadata) ---
+# Baseline timm ConvNeXt-Small weights are *.safetensors; fine-tuned torchvision
+# EfficientNet-B0 checkpoints are *.pth. Both are large binaries and must never
+# be committed. Only weight FILES are excluded here -- the small metadata kept
+# next to them (config.json / classes.json / README.md) stays trackable.
+*.pth
+*.pt
+*.safetensors
+*.ckpt
+*.onnx
+*.h5
+*.bin
+
+# --- Generated datasets / split manifests ---
+# Locally generated training split manifests (e.g. rice_split_manifest.csv).
+fine-tune-model/*/*.csv
+*.parquet
+
+# Keep required model metadata trackable even if a whole model directory is
+# ever ignored by a future broad rule.
+!*-disease-convnext/config.json
+!*-disease-convnext/README.md
+!fine-tune-model/*/classes.json
+!backend/verification_report.json
+
+# --- Generated audio (TTS/STT test artifacts) ---
+*.wav
+
+# --- Node / frontend ---
+node_modules/
+frontend/dist/
+frontend/build/
+npm-debug.log*
+yarn-error.log*
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
