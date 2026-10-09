@@ -17,3 +17,12 @@ def test_no_secret_material_in_api_responses() -> None:
 def test_settings_hold_only_a_boolean_for_groq() -> None:
     assert isinstance(settings.groq_api_key_configured, bool)
     assert not hasattr(settings, "groq_api_key")
+
+
+def test_insights_error_response_has_no_secret_material() -> None:
+    response = client.post("/insights/ask", json={"crop": "maize", "question": "hi"})
+    assert response.status_code == 503
+    text = response.text.lower()
+    assert "groq" not in text
+    assert "api_key" not in text
+    assert "apikey" not in text

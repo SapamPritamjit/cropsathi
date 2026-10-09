@@ -93,36 +93,27 @@
             </div>
           </div>
 
-          <div class="grid grid-3">
-            <article class="card">
-              <h3 class="card__title">Backend status</h3>
-              <p class="card__body" id="dashHealth">Checking…</p>
-              <p class="muted-sm" id="dashHealthMeta">—</p>
-            </article>
-            <article class="card">
-              <h3 class="card__title">Supported crops</h3>
-              <p class="card__body" id="dashCrops">Loading crop list…</p>
-            </article>
-            <article class="card">
-              <h3 class="card__title">This session</h3>
-              <p class="card__body" id="dashSessionCount">0 predictions</p>
-              <p class="muted-sm">Kept in this browser tab only.</p>
-            </article>
-          </div>
-
           <div class="section-head">
-            <h3>Quick actions</h3>
+            <h3>Start here</h3>
           </div>
-          <div class="grid grid-2">
+          <div class="grid grid-3">
             <button class="action-card" type="button" data-goto="diagnosis">
               <span class="action-card__icon" aria-hidden="true">✿</span>
-              <span class="action-card__label">Diagnose a leaf</span>
-              <span class="action-card__desc">Upload a photo and get a model prediction.</span>
+              <span class="action-card__label">Diagnose a crop</span>
+              <span class="action-card__desc">Upload a leaf photo and get a model prediction for your crop.</span>
+              <span class="action-card__cta">Open Crop Diagnosis <span aria-hidden="true">→</span></span>
             </button>
             <button class="action-card" type="button" data-goto="schemes">
               <span class="action-card__icon" aria-hidden="true">₹</span>
-              <span class="action-card__label">Farmer scheme finder</span>
-              <span class="action-card__desc">Search government agriculture schemes.</span>
+              <span class="action-card__label">Find farmer schemes</span>
+              <span class="action-card__desc">Search official agriculture schemes, subsidies and support.</span>
+              <span class="action-card__cta">Open Scheme Finder <span aria-hidden="true">→</span></span>
+            </button>
+            <button class="action-card" type="button" data-goto="insights">
+              <span class="action-card__icon" aria-hidden="true">▤</span>
+              <span class="action-card__label">Explore crop insights</span>
+              <span class="action-card__desc">Interpret results, ask crop questions and view session charts.</span>
+              <span class="action-card__cta">Open AI Crop Insights <span aria-hidden="true">→</span></span>
             </button>
           </div>
 
@@ -226,7 +217,35 @@
 
             <form id="schemeForm" class="scheme-form" novalidate>
               <div class="grid grid-2">
-                <div class="field">
+                <div class="field field--full">
+                  <span class="field__label" id="schemeModeLabel">Search mode</span>
+                  <div class="segmented" role="radiogroup" aria-labelledby="schemeModeLabel">
+                    <label class="segmented__option">
+                      <input type="radio" name="schemeMode" id="schemeModeTopic" value="topic" checked />
+                      <span>Choose a topic</span>
+                    </label>
+                    <label class="segmented__option">
+                      <input type="radio" name="schemeMode" id="schemeModeCustom" value="custom" />
+                      <span>Write your own</span>
+                    </label>
+                  </div>
+                </div>
+                <div class="field" id="schemeTopicField">
+                  <label for="schemeTopic">Topic</label>
+                  <select id="schemeTopic" name="topic">
+                    <option value="seed subsidy">Seed subsidy</option>
+                    <option value="fertilizer support">Fertilizer support</option>
+                    <option value="crop insurance">Crop insurance</option>
+                    <option value="agricultural credit">Agricultural credit</option>
+                    <option value="irrigation support">Irrigation support</option>
+                    <option value="farm machinery">Farm machinery</option>
+                    <option value="market support">Market support</option>
+                    <option value="farmer training">Training</option>
+                    <option value="pest and disease support">Pest and disease support</option>
+                  </select>
+                  <p class="field__hint">Ready-made search phrases — not confirmed or currently active schemes.</p>
+                </div>
+                <div class="field" id="schemeQueryField" hidden>
                   <label for="schemeQuery">Search text (optional)</label>
                   <input id="schemeQuery" name="q" type="text" placeholder="e.g. seed subsidy" autocomplete="off" />
                 </div>
@@ -299,10 +318,10 @@
         <section class="view" id="view-models" aria-labelledby="viewTitle" hidden>
           <article class="card">
             <div class="card__head">
-              <h3 class="card__title">Model inventory</h3>
+              <h3 class="card__title">Model dashboard</h3>
               <button class="btn btn-ghost" id="reloadModelsBtn" type="button">Reload</button>
             </div>
-            <p class="muted-sm">Reference metadata reported by the backend. Any reported accuracy is the provider's own figure and is <strong>not</strong> reproduced locally.</p>
+            <p class="muted-sm">Capabilities and evaluation metrics reported by the backend. Baseline metrics are <strong>provider-reported</strong> and fine-tuned metrics are <strong>training-reported</strong> — neither is reproduced locally. Panels are shown for inspection; values from different models are <strong>not</strong> a head-to-head ranking.</p>
             <div class="form-status" id="modelsStatus" role="status" aria-live="polite" hidden></div>
             <div id="modelsList" class="stack"></div>
           </article>
@@ -373,8 +392,8 @@
               </div>
               <p class="session-meta" id="insightSessionMeta">No active session yet. Choose a crop to begin.</p>
 
-              <div class="form-status is-warn" id="insightAINotice" role="note">
-                AI answering is unavailable: the backend has no general crop Q&amp;A endpoint, so no answer can be generated. Questions you ask are recorded in the conversation, but nothing is sent to an AI model. Prediction summaries and charts below use real backend features.
+              <div class="form-status is-info" id="insightAINotice" role="note">
+                Answers come from the backend's AI crop Q&amp;A endpoint (<code>POST /insights/ask</code>). Whether it is available depends on the server operator's configuration and API key — if it is off you will see a clear message here. Your question is sent only when you press Ask; nothing is stored on a server.
               </div>
 
               <div class="transcript transcript--session" id="insightTranscript" aria-live="polite" aria-label="Crop insights conversation">

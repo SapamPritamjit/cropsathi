@@ -254,3 +254,55 @@ class SchemeSearchResponse(BaseModel):
     retrieved_at: str
     disclaimer: str
     language: str
+
+
+# --- Increment 9P: AI crop question answering --------------------------------
+
+
+class InsightContext(BaseModel):
+    """Optional latest-prediction context for a crop question.
+
+    Only the fields the prediction API actually returns are accepted; unknown
+    fields are ignored. This is an uncertain *model prediction*, never a
+    confirmed diagnosis. Bound/type validation happens in ``app.insights.prompt``
+    so the endpoint can emit a stable error code.
+    """
+
+    model_config = ConfigDict(extra="ignore")
+
+    predicted_label: str | None = Field(
+        default=None, description="Predicted class label from a prior prediction."
+    )
+    confidence: Any = Field(
+        default=None,
+        description="Optional model confidence in [0, 1]; validated by the builder.",
+    )
+    family: str | None = Field(
+        default=None, description="Model family, e.g. 'baseline' or 'fine_tuned'."
+    )
+
+
+class InsightAskRequest(BaseModel):
+    """Input for ``POST /insights/ask``."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    crop: str = Field(..., description="Crop identifier: maize, rice, potato, tomato.")
+    question: str = Field(..., description="Crop-related question (bounded length).")
+    topic: str | None = Field(
+        default=None, description="Optional topic from an explicit allow-list."
+    )
+    context: InsightContext | None = Field(
+        default=None, description="Optional latest-prediction context."
+    )
+
+
+class InsightAskResponse(BaseModel):
+    """A grounded, crop-related answer from the configured chat model."""
+
+    crop: str
+    topic: str
+    answer: str
+    model: str
+    generated_at: str
+    disclaimer: str

@@ -1,11 +1,18 @@
-"""Consistency tests: TTS settings in code vs. docs, and httpx dependency.
+"""Consistency tests: settings in code vs. docs, and httpx dependency.
 
 These assert that the documented defaults in ``backend/.env.example`` and the
 runtime dependency in ``backend/requirements.txt`` stay in sync with the actual
 configuration in ``app/config.py``. No network and no secrets involved.
+
+``config`` loads the developer's root ``.env`` into ``os.environ`` at import, so
+the module-level ``settings`` singleton can reflect local overrides. Following
+the repository pattern (see ``test_scheme_config.py``), the settings-vs-docs
+tests clear the documented variables with ``monkeypatch.delenv`` and build a
+fresh ``Settings()`` so the *code* defaults are asserted independently of any
+local ``.env`` (which is never read, printed, or modified here).
 """
 
-from app.config import PROJECT_ROOT, settings
+from app.config import PROJECT_ROOT, Settings
 
 ENV_EXAMPLE = PROJECT_ROOT / "backend" / ".env.example"
 REQUIREMENTS = PROJECT_ROOT / "backend" / "requirements.txt"
@@ -32,6 +39,16 @@ EXPECTED_SCHEME_DEFAULTS = {
     "SCHEME_CATALOGUE_ENABLED": "false",
 }
 
+# AI crop question answering (Increment 9P).
+EXPECTED_INSIGHTS_DEFAULTS = {
+    "GROQ_INSIGHTS_ENABLED": "false",
+    "GROQ_CHAT_URL": "https://api.groq.com/openai/v1/chat/completions",
+    "GROQ_CHAT_MODEL": "llama-3.3-70b-versatile",
+    "GROQ_CHAT_TIMEOUT_SECONDS": "20",
+    "GROQ_CHAT_MAX_INPUT_CHARS": "500",
+    "GROQ_CHAT_MAX_TOKENS": "400",
+}
+
 
 def _active_env(path) -> dict[str, str]:
     values: dict[str, str] = {}
@@ -44,6 +61,19 @@ def _active_env(path) -> dict[str, str]:
     return values
 
 
+def _fresh_settings(monkeypatch, documented_keys):
+    """Return a ``Settings`` built with ``documented_keys`` cleared from the env.
+
+    ``monkeypatch.delenv`` only touches this test process's environment; it does
+    not read or modify the local ``.env`` file. Clearing the documented keys lets
+    ``Settings()`` fall back to the in-code defaults that ``.env.example``
+    documents.
+    """
+    for key in documented_keys:
+        monkeypatch.delenv(key, raising=False)
+    return Settings()
+
+
 def test_env_example_documents_all_tts_defaults() -> None:
     env = _active_env(ENV_EXAMPLE)
     for key, expected in EXPECTED_TTS_DEFAULTS.items():
@@ -51,14 +81,15 @@ def test_env_example_documents_all_tts_defaults() -> None:
         assert env[key] == expected, f"{key} documented as {env[key]!r}"
 
 
-def test_settings_match_documented_defaults() -> None:
-    assert settings.groq_tts_url == EXPECTED_TTS_DEFAULTS["GROQ_TTS_URL"]
-    assert settings.groq_tts_model == EXPECTED_TTS_DEFAULTS["GROQ_TTS_MODEL"]
-    assert settings.groq_tts_voice == EXPECTED_TTS_DEFAULTS["GROQ_TTS_VOICE"]
-    assert settings.groq_tts_response_format == "wav"
-    assert settings.groq_tts_max_input_chars == 200
-    assert settings.groq_tts_timeout_seconds == 30.0
-    assert settings.groq_tts_max_audio_bytes == 10485760
+def test_settings_match_documented_defaults(monkeypatch) -> None:
+    active = _fresh_settings(monkeypatch, EXPECTED_TTS_DEFAULTS)
+    assert active.groq_tts_url == EXPECTED_TTS_DEFAULTS["GROQ_TTS_URL"]
+    assert active.groq_tts_model == EXPECTED_TTS_DEFAULTS["GROQ_TTS_MODEL"]
+    assert active.groq_tts_voice == EXPECTED_TTS_DEFAULTS["GROQ_TTS_VOICE"]
+    assert active.groq_tts_response_format == "wav"
+    assert active.groq_tts_max_input_chars == 200
+    assert active.groq_tts_timeout_seconds == 30.0
+    assert active.groq_tts_max_audio_bytes == 10485760
 
 
 def test_env_example_documents_all_scheme_defaults() -> None:
@@ -68,13 +99,31 @@ def test_env_example_documents_all_scheme_defaults() -> None:
         assert env[key] == expected, f"{key} documented as {env[key]!r}"
 
 
-def test_scheme_settings_match_documented_defaults() -> None:
-    assert settings.scheme_search_enabled is False
-    assert settings.scheme_search_timeout_seconds == 8.0
-    assert settings.scheme_search_max_results == 20
-    assert settings.scheme_search_region == "in-en"
-    assert settings.scheme_official_origins == ()
-    assert settings.scheme_catalogue_enabled is False
+def test_scheme_settings_match_documented_defaults(monkeypatch) -> None:
+    active = _fresh_settings(monkeypatch, EXPECTED_SCHEME_DEFAULTS)
+    assert active.scheme_search_enabled is False
+    assert active.scheme_search_timeout_seconds == 8.0
+    assert active.scheme_search_max_results == 20
+    assert active.scheme_search_region == "in-en"
+    assert active.scheme_official_origins == ()
+    assert active.scheme_catalogue_enabled is False
+
+
+def test_env_example_documents_all_insights_defaults() -> None:
+    env = _active_env(ENV_EXAMPLE)
+    for key, expected in EXPECTED_INSIGHTS_DEFAULTS.items():
+        assert key in env, f"{key} missing from .env.example"
+        assert env[key] == expected, f"{key} documented as {env[key]!r}"
+
+
+def test_insights_settings_match_documented_defaults(monkeypatch) -> None:
+    active = _fresh_settings(monkeypatch, EXPECTED_INSIGHTS_DEFAULTS)
+    assert active.groq_insights_enabled is False
+    assert active.groq_chat_url == EXPECTED_INSIGHTS_DEFAULTS["GROQ_CHAT_URL"]
+    assert active.groq_chat_model == EXPECTED_INSIGHTS_DEFAULTS["GROQ_CHAT_MODEL"]
+    assert active.groq_chat_timeout_seconds == 20.0
+    assert active.groq_chat_max_input_chars == 500
+    assert active.groq_chat_max_tokens == 400
 
 
 def test_ddgs_declared_as_runtime_dependency() -> None:

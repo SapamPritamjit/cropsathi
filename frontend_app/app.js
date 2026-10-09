@@ -158,13 +158,14 @@ const state = {
   transcriptChunks: [],
   transcriptStream: null,
   schemeController: null,
+  insightController: null,
 };
 
 const VIEW_META = {
   dashboard: { title: "Dashboard", subtitle: "Overview and quick actions" },
   diagnosis: { title: "Crop Diagnosis", subtitle: "Screen a leaf photo for likely disease" },
   schemes: { title: "Scheme Finder", subtitle: "Search official agriculture schemes" },
-  models: { title: "Models", subtitle: "Model inventory and class sets" },
+  models: { title: "Models", subtitle: "Model capabilities and reported metrics" },
   crops: { title: "My Crops", subtitle: "Local demo list" },
   history: { title: "History", subtitle: "Predictions from this session" },
   insights: { title: "AI Crop Insights", subtitle: "Crop questions, prediction interpretation and charts" },
@@ -225,6 +226,19 @@ const ERROR_MESSAGES = {
   scheme_search_query_too_long: "The search text is too long (200-character limit).",
   scheme_search_timeout: "The scheme search timed out. Please try again.",
   scheme_search_upstream_error: "The upstream search provider returned an error. Please retry shortly.",
+  insights_disabled: "AI crop Q&A is disabled on the backend. Ask the operator to set GROQ_INSIGHTS_ENABLED=true.",
+  insights_not_configured: "AI crop Q&A is not configured on the backend (no API key). Ask the operator to set GROQ_API_KEY.",
+  insight_empty_question: "Type a non-empty question.",
+  insight_question_too_long: "The question is longer than the backend's limit. Please shorten it.",
+  insight_invalid_topic: "The backend did not recognise that topic.",
+  insight_invalid_context: "The backend rejected the prediction context.",
+  insights_configuration_error: "AI crop Q&A is misconfigured on the backend.",
+  insights_empty_answer: "The backend AI service returned an empty answer.",
+  insights_timeout: "The backend AI service timed out. Please try again.",
+  insights_rate_limited: "The backend AI service is rate limited. Please try again shortly.",
+  insights_upstream_auth_error: "The backend AI service rejected the server credentials.",
+  insights_upstream_unavailable: "The backend AI service could not be reached.",
+  insights_upstream_error: "The backend AI service returned an error.",
 };
 
 function describeError(err) {
@@ -289,18 +303,13 @@ async function loadHealth() {
   pill.className = "status-pill is-wait";
   text.textContent = "Checking backend…";
   try {
-    const data = await apiRequest("/health");
+    await apiRequest("/health");
     pill.className = "status-pill is-ok";
     text.textContent = "Backend online";
-    $("dashHealth").textContent = "Online";
-    $("dashHealthMeta").textContent =
-      (data.app || "API") + " " + (data.version || "") + " · " + (data.environment || "") + " · " + (data.status || "");
     return true;
   } catch (err) {
     pill.className = "status-pill is-err";
     text.textContent = "Backend offline";
-    $("dashHealth").textContent = "Offline";
-    $("dashHealthMeta").textContent = describeError(err) || "Unreachable.";
     return false;
   }
 }
@@ -340,9 +349,6 @@ async function loadCrops() {
   fillSelect($("comparisonCrop"), "Select a crop…");
   fillSelect($("insightCrop"), "Select a crop…");
   fillSelect($("chartCrop"), "Select a crop…");
-
-  const names = crops.map(function (c) { return c.display_name; }).join(", ");
-  $("dashCrops").textContent = names + (usedFallback ? " (offline defaults)" : "");
 }
 
 /* ------------------------------------------------------------------ *
@@ -1258,9 +1264,32 @@ function renderSchemeResults(payload) {
   }
 }
 
+function currentSchemeMode() {
+  const checked = qs('input[name="schemeMode"]:checked');
+  return checked && checked.value === "custom" ? "custom" : "topic";
+}
+
+function schemeQueryText() {
+  if (currentSchemeMode() === "custom") return $("schemeQuery").value.trim();
+  const topicSelect = $("schemeTopic");
+  return topicSelect ? topicSelect.value.trim() : "";
+}
+
+function setSchemeMode(mode) {
+  const isCustom = mode === "custom";
+  const topicField = $("schemeTopicField");
+  const queryField = $("schemeQueryField");
+  if (topicField) topicField.hidden = isCustom;
+  if (queryField) queryField.hidden = !isCustom;
+}
+
+function onSchemeModeChange(event) {
+  setSchemeMode(event.target.value);
+}
+
 function fillQueryFromForm() {
   const query = {};
-  const q = $("schemeQuery").value.trim();
+  const q = schemeQueryText();
   const crop = $("schemeCrop").value;
   const need = $("schemeNeed").value;
   const district = $("schemeDistrict").value.trim();
@@ -1316,6 +1345,7 @@ async function submitSchemeSearch(event) {
 
 function clearSchemeForm() {
   $("schemeForm").reset();
+  setSchemeMode("topic");
   clearSchemeResults();
   setStatus("schemeStatus", null);
 }
@@ -1366,12 +1396,16 @@ function renderHistory() {
 }
 
 function renderDashboardSession() {
-  $("dashSessionCount").textContent =
-    state.sessionHistory.length + (state.sessionHistory.length === 1 ? " prediction" : " predictions");
   const summary = $("dashRecentSummary");
+  if (!summary) return;
   summary.textContent = "";
   if (!state.sessionHistory.length) {
-    summary.appendChild(el("p", { class: "muted-sm", text: "Run a diagnosis to see it here." }));
+    const startBtn = el("button", { class: "btn btn-secondary", type: "button", text: "Start your first diagnosis" });
+    startBtn.addEventListener("click", function () { showView("diagnosis"); });
+    summary.appendChild(el("div", { class: "empty-state" }, [
+      el("p", { class: "muted-sm", text: "No predictions yet in this session." }),
+      startBtn,
+    ]));
     return;
   }
   state.sessionHistory.slice(0, 3).forEach(function (item) {
@@ -1506,10 +1540,13 @@ async function copyFeedback() {
 /* ------------------------------------------------------------------ *
  * AI Crop Insights
  *
- * There is NO general crop question-answering endpoint in the backend
- * (only /predict, /speech/*, /schemes/search, /crops, /models,
- * /comparison/{crop}). This workspace therefore never fabricates an
- * answer; it reports the missing capability and links to what does work.
+ * The composer calls the backend's general crop Q&A endpoint
+ * POST /insights/ask (see backend/app/routers/insights.py). The feature is
+ * DISABLED by default and needs a server-side Groq key; when it is off the
+ * endpoint returns a clear error envelope and this UI shows that message.
+ * No answer is ever invented, no key is exposed to the browser, and prior
+ * turns are NOT sent — the contract takes one question plus optional context
+ * (predicted_label / confidence / family) and returns a bounded answer.
  * ------------------------------------------------------------------ */
 
 const INSIGHT_TOPIC_LABELS = {
@@ -1523,7 +1560,9 @@ const INSIGHT_TOPIC_LABELS = {
 
 const INSIGHT_KIND_LABELS = {
   question: "You asked",
-  unavailable: "AI unavailable",
+  loading: "Thinking",
+  answer: "AI answer",
+  error: "Error",
   diagnosis: "Diagnosis reference",
   summary: "Backend summary",
   note: "Note",
@@ -1548,9 +1587,11 @@ function addInsightTurn(kind, text, extra) {
     text: text || "",
     meta: opts.meta || "",
     lines: opts.lines || null,
+    disclaimer: opts.disclaimer || "",
   });
   session.nextTurn += 1;
   renderInsightSession();
+  return session.turns[session.turns.length - 1];
 }
 
 function renderInsightSession() {
@@ -1586,6 +1627,9 @@ function renderInsightSession() {
     } else {
       body.textContent = turn.text;
     }
+    if (turn.disclaimer) {
+      body.appendChild(el("div", { class: "turn__disclaimer", text: turn.disclaimer }));
+    }
     const head = el("div", { class: "turn__head" }, [
       el("span", { class: "turn__badge", text: INSIGHT_KIND_LABELS[turn.kind] || turn.kind }),
       el("span", { class: "turn__meta", text: "Turn " + turn.n + " · " + insightTurnTime(turn.at) + (turn.meta ? " · " + turn.meta : "") }),
@@ -1612,13 +1656,14 @@ function setInsightCrop(crop, resetTurns) {
 function onInsightCropChange(event) {
   const crop = event.target.value;
   const session = state.insightSession;
+  const changed = session.crop && session.crop !== crop;
+  if (!crop || changed) cancelInsightRequest();
   if (!crop) {
     session.crop = "";
     session.cropDisplay = "";
     renderInsightSession();
     return;
   }
-  const changed = session.crop && session.crop !== crop;
   const hadTurns = session.turns.length > 0;
   session.crop = crop;
   session.cropDisplay = cropDisplayName(crop);
@@ -1633,7 +1678,53 @@ function onInsightCropChange(event) {
   }
 }
 
-function submitInsight(event) {
+function insightContextFor(crop) {
+  // Only attach the last prediction when it belongs to the session's crop, so
+  // one crop's model output is never mixed into another crop's question.
+  const r = state.lastResult;
+  if (!r || !r.crop || r.crop !== crop) return null;
+  const context = {};
+  if (r.predicted_label) context.predicted_label = r.predicted_label;
+  if (typeof r.confidence === "number" && isFinite(r.confidence)) context.confidence = r.confidence;
+  if (r.model && r.model.family) context.family = r.model.family;
+  return Object.keys(context).length ? context : null;
+}
+
+function setInsightAskBusy(busy) {
+  const btn = $("insightAskBtn");
+  if (!btn) return;
+  btn.disabled = !!busy;
+  btn.textContent = busy ? "Asking…" : "Ask";
+}
+
+function resolveInsightTurn(turn, kind, text, extra) {
+  if (!turn) return;
+  const opts = extra || {};
+  turn.kind = kind;
+  turn.text = text || "";
+  turn.lines = opts.lines || null;
+  turn.meta = opts.meta || "";
+  turn.disclaimer = opts.disclaimer || "";
+  renderInsightSession();
+}
+
+function removeInsightTurn(turn) {
+  const turns = state.insightSession.turns;
+  const index = turns.indexOf(turn);
+  if (index === -1) return;
+  turns.splice(index, 1);
+  renderInsightSession();
+}
+
+function cancelInsightRequest() {
+  if (state.insightController) {
+    state.insightController.abort();
+    state.insightController = null;
+  }
+  setInsightAskBusy(false);
+}
+
+async function submitInsight(event) {
   event.preventDefault();
   const crop = $("insightCrop").value;
   if (!crop) { setStatus("insightStatus", "warn", "Choose a crop for this session first."); return; }
@@ -1645,24 +1736,68 @@ function submitInsight(event) {
   const question = $("insightQuestion").value.trim();
   if (!question) { setStatus("insightStatus", "warn", "Type a question to add it to the conversation."); return; }
 
-  addInsightTurn("question", "Question: " + question, { meta: INSIGHT_TOPIC_LABELS[topic] || topic });
-  addInsightTurn("unavailable", "No answer can be produced. The backend has no general crop question-answering endpoint, so nothing is sent to an AI model and no answer is invented here.", {
-    lines: [
-      "Real features available now: image prediction (POST /predict), crop and model reference (GET /crops, GET /models, GET /comparison/{crop}), scheme search (GET /schemes/search) and speech (POST /speech/speak, /speech/transcribe, /speech/response).",
-      "Data this backend does not provide: real-world disease prevalence, outbreak history, yield forecasts or seasonal trends.",
-      "To answer questions, a future endpoint such as POST /insights/ask would accept the crop, topic, question and prior turns and return a grounded text answer.",
-    ],
-  });
+  const topicLabel = INSIGHT_TOPIC_LABELS[topic] || topic;
+  addInsightTurn("question", "Question: " + question, { meta: topicLabel });
   $("insightQuestion").value = "";
-  setStatus("insightStatus", "warn", "Question recorded. AI answering is unavailable on this backend.");
+
+  // A new submit supersedes any in-flight question (only the latest answer is kept).
+  if (state.insightController) state.insightController.abort();
+  const controller = new AbortController();
+  state.insightController = controller;
+
+  const loading = addInsightTurn("loading", "Contacting the backend AI service…");
+  setInsightAskBusy(true);
+  setStatus("insightStatus", "info", "Waiting for the backend AI service…");
+
+  try {
+    const data = await apiRequest("/insights/ask", {
+      method: "POST",
+      signal: controller.signal,
+      json: {
+        crop: crop,
+        question: question,
+        topic: topic,
+        context: insightContextFor(crop),
+      },
+    });
+    const answer = data && typeof data.answer === "string" ? data.answer.trim() : "";
+    if (!answer) {
+      resolveInsightTurn(loading, "error", "The backend returned an empty answer. No answer was invented.");
+      setStatus("insightStatus", "error", ERROR_MESSAGES.insights_empty_answer);
+      return;
+    }
+    const meta = topicLabel + (data.model ? " · " + data.model : "");
+    resolveInsightTurn(loading, "answer", answer, {
+      meta: meta,
+      disclaimer: data.disclaimer || "",
+    });
+    setStatus("insightStatus", "ok", "Answer received. AI-generated guidance — not a confirmed diagnosis.");
+  } catch (err) {
+    if (err && err.name === "AbortError") {
+      removeInsightTurn(loading);
+      return;
+    }
+    const message = describeError(err) || "The request failed.";
+    const kind = (err instanceof ApiError && (err.code === "insights_disabled" || err.code === "insights_not_configured"))
+      ? "warn"
+      : "error";
+    resolveInsightTurn(loading, "error", message);
+    setStatus("insightStatus", kind, message);
+  } finally {
+    if (state.insightController === controller) {
+      state.insightController = null;
+      setInsightAskBusy(false);
+    }
+  }
 }
 
 function clearInsightSession() {
+  cancelInsightRequest();
   state.insightSession = { crop: "", cropDisplay: "", turns: [], nextTurn: 1 };
   const select = $("insightCrop");
   if (select) select.value = "";
   renderInsightSession();
-  setStatus("insightStatus", "ok", "Session cleared. Nothing was ever saved to a server.");
+  setStatus("insightStatus", "ok", "Session cleared. The backend does not store this conversation.");
 }
 
 function exploreResultFromDiagnosis() {
@@ -1678,11 +1813,11 @@ function exploreResultFromDiagnosis() {
     lines: [
       "Prediction: " + (result.predicted_label || "Unknown") + " (model confidence " + pct + ").",
       "This is a model prediction, not a confirmed diagnosis.",
-      "Use the charts below or the backend summary to explore this crop. General AI Q&A is unavailable.",
+      "Ask a question above, or use the charts and backend summary below to explore this crop.",
     ],
   });
   showView("insights");
-  setStatus("insightStatus", "warn", "Diagnosis reference added. AI answering is unavailable on this backend.");
+  setStatus("insightStatus", "ok", "Diagnosis reference added. Ask a crop question above to use the AI crop Q&A.");
 }
 
 async function summarizeLastPrediction() {
@@ -1895,6 +2030,214 @@ function renderMetrics(entry) {
   return wrap;
 }
 
+const METRIC_FRIENDLY_NAMES = {
+  test_accuracy: "Test accuracy",
+  val_accuracy: "Validation accuracy",
+  macro_f1: "Macro F1",
+  test_macro_f1: "Test macro F1",
+  test_weighted_f1: "Test weighted F1",
+  val_loss: "Validation loss",
+  test_loss: "Test loss",
+};
+
+function metricLabel(name) {
+  return METRIC_FRIENDLY_NAMES[name] || name || "metric";
+}
+
+// A metric is drawn as a 0–100%bar only when it is a genuine 0–1 ratio that is
+// not a loss. Everything else is shown as a raw number with no bar.
+function metricIsFraction(item) {
+  return typeof item.value === "number" && isFinite(item.value) &&
+    item.value >= 0 && item.value <= 1 && !/loss/i.test(item.name || "");
+}
+
+function formatMetricValue(item) {
+  if (typeof item.value !== "number" || !isFinite(item.value)) return "—";
+  if (metricIsFraction(item)) return (item.value * 100).toFixed(1) + "%";
+  return String(item.value);
+}
+
+function provenanceBadgeClass(provenance) {
+  if (provenance === "provider-reported") return "badge-other";
+  if (provenance === "training-reported") return "badge-local";
+  return "badge-unverified";
+}
+
+function renderMetricBar(item) {
+  const fraction = metricIsFraction(item);
+  const split = item.split || "unknown";
+  const provenance = item.provenance || "unknown";
+  const row = el("div", { class: "metric-bar" + (fraction ? "" : " metric-bar--raw") });
+  row.appendChild(el("div", { class: "metric-bar__head" }, [
+    el("span", { class: "metric-bar__name", text: metricLabel(item.name) }),
+    el("span", { class: "metric-bar__value", text: formatMetricValue(item) }),
+  ]));
+  row.appendChild(el("div", { class: "metric-bar__meta" }, [
+    el("span", { class: "badge " + (split === "unknown" ? "badge-unverified" : "badge-aux"), text: split === "unknown" ? "split unknown" : split + " split" }),
+    el("span", { class: "badge " + provenanceBadgeClass(provenance), text: provenance }),
+  ]));
+  if (fraction) {
+    const pct = Math.max(0, Math.min(100, item.value * 100));
+    row.appendChild(el("div", {
+      class: "metric-bar__track",
+      role: "img",
+      "aria-label": metricLabel(item.name) + ": " + formatMetricValue(item) + ", " + split + " split, " + provenance,
+    }, [el("div", { class: "metric-bar__fill", style: "width:" + pct + "%;" })]));
+  } else {
+    row.appendChild(el("p", { class: "muted-sm", text: "Reported as a raw value (not shown as a bar)." }));
+  }
+  return row;
+}
+
+function renderMetricCards(entry) {
+  const wrap = el("div", { class: "metric-cards" });
+  const metrics = entry.metrics || {};
+  if (!metrics.available || !(metrics.items && metrics.items.length)) {
+    wrap.appendChild(el("p", { class: "muted-sm", text: "No metrics reported for this model." }));
+    return wrap;
+  }
+  metrics.items.forEach(function (item) { wrap.appendChild(renderMetricBar(item)); });
+  return wrap;
+}
+
+function findMetric(entry, name, split) {
+  const items = (entry && entry.metrics && entry.metrics.items) || [];
+  for (let i = 0; i < items.length; i++) {
+    if (items[i].name === name && (split === undefined || items[i].split === split)) return items[i];
+  }
+  return null;
+}
+
+function renderModelPanel(entry) {
+  const panel = el("div", { class: "model-panel" });
+  panel.appendChild(el("div", { class: "model-panel__head" }, [
+    el("span", { class: "model-panel__role", text: entry.display_role || entry.family || "Model" }),
+    el("div", { class: "model-panel__badges" }, [
+      el("span", { class: "badge " + (entry.live_inference_enabled ? "badge-official" : "badge-unverified"), text: entry.live_inference_enabled ? "Live inference enabled" : "Live inference disabled" }),
+      el("span", { class: "badge " + verificationBadgeClass(entry.verification_status), text: entry.verification_status || "unknown" }),
+    ]),
+  ]));
+  const bits = [];
+  if (entry.architecture) bits.push(entry.architecture);
+  if (entry.num_classes != null) bits.push(entry.num_classes + " classes");
+  if (Array.isArray(entry.input_size) && entry.input_size.length) bits.push(entry.input_size.join(" × "));
+  panel.appendChild(el("p", { class: "model-panel__meta", text: bits.length ? bits.join(" · ") : "No architecture metadata reported for this model." }));
+  panel.appendChild(renderMetricCards(entry));
+  if (!entry.live_inference_enabled && entry.live_inference_blocked_reason) {
+    panel.appendChild(el("p", { class: "muted-sm", text: "Not serving predictions: " + entry.live_inference_blocked_reason }));
+  }
+  return panel;
+}
+
+function renderMissingPanel(roleLabel) {
+  const panel = el("div", { class: "model-panel model-panel--empty" });
+  panel.appendChild(el("div", { class: "model-panel__head" }, [
+    el("span", { class: "model-panel__role", text: roleLabel }),
+  ]));
+  panel.appendChild(el("p", { class: "muted-sm", text: "Not reported for this crop — no checkpoint was found on the backend." }));
+  return panel;
+}
+
+// Explicitly states whether baseline vs fine-tuned values are comparable. They
+// never are when class sets or evaluation protocols differ, and even matching
+// metric names are NOT a quality ranking.
+function comparisonNote(baseline, ft) {
+  if (!ft) {
+    return "Only a baseline model is reported for this crop, so there is no fine-tuned checkpoint to compare against.";
+  }
+  const bTest = findMetric(baseline, "test_accuracy", "test");
+  const fTest = findMetric(ft, "test_accuracy", "test");
+  if (bTest && fTest) {
+    const bClasses = baseline.num_classes != null ? baseline.num_classes : "?";
+    const fClasses = ft.num_classes != null ? ft.num_classes : "?";
+    return "Both models happen to report test_accuracy, but on different class sets (" + bClasses + " vs " + fClasses +
+      " classes) and under different evaluation protocols (provider-reported vs training-reported). The panels sit side by side for inspection only and must NOT be read as a head-to-head ranking.";
+  }
+  return "The baseline and fine-tuned models do not report the same named metric on the same split, so their metric values are not directly comparable.";
+}
+
+function renderEntryDetailsBody(title, entry) {
+  const wrap = el("div", { class: "tech-details__body" });
+  wrap.appendChild(el("h4", { class: "tech-details__subhead", text: title }));
+
+  const kv = el("div", { class: "kv-grid" });
+  function pair(key, value) {
+    kv.appendChild(el("div", { class: "kv" }, [
+      el("span", { class: "kv__k", text: key }),
+      el("span", { class: "kv__v", text: value }),
+    ]));
+  }
+  pair("Family", entry.family || "—");
+  pair("Architecture", entry.architecture || "—");
+  pair("Implementation", entry.implementation || "—");
+  pair("Classes", entry.num_classes != null ? String(entry.num_classes) : "—");
+  pair("Input size", Array.isArray(entry.input_size) && entry.input_size.length ? entry.input_size.join(" × ") : "—");
+  pair("Checkpoint present", yesNo(entry.checkpoint_present));
+  pair("Checkpoint loads", yesNo(entry.checkpoint_loads));
+  pair("Preprocessing verified", yesNo(entry.preprocessing_verified));
+  pair("Verification status", entry.verification_status || "—");
+  pair("Live inference", entry.live_inference_enabled ? "enabled" : "disabled");
+  if (entry.live_inference_blocked_reason) pair("Blocked reason", entry.live_inference_blocked_reason);
+  if (entry.training_info && entry.training_info.best_epoch != null) pair("Best epoch", String(entry.training_info.best_epoch));
+  wrap.appendChild(kv);
+
+  wrap.appendChild(renderMetrics(entry));
+
+  if (entry.labels && entry.labels.length) {
+    wrap.appendChild(el("p", { class: "class-set__label", text: "Class labels (" + entry.labels.length + ")" }));
+    const chips = el("div", { class: "chips" });
+    entry.labels.forEach(function (label) { chips.appendChild(el("span", { class: "chip", text: label })); });
+    wrap.appendChild(chips);
+  }
+  return wrap;
+}
+
+function renderCropOverview(display, baseline, ft) {
+  const card = el("article", { class: "card crop-overview" });
+
+  card.appendChild(el("div", { class: "card__head" }, [
+    el("h3", { class: "card__title", text: display }),
+    el("div", { class: "crop-overview__badges" }, [
+      baseline && baseline.live_inference_enabled
+        ? el("span", { class: "badge badge-official", text: "Baseline serving" })
+        : el("span", { class: "badge badge-unverified", text: "Baseline not serving" }),
+      ft
+        ? el("span", { class: "badge badge-aux", text: "Fine-tuned present" })
+        : el("span", { class: "badge badge-unverified", text: "No fine-tuned model" }),
+    ]),
+  ]));
+
+  const present = [baseline, ft].filter(Boolean);
+  const liveNow = present.filter(function (e) { return e.live_inference_enabled; }).length;
+  const reported = present.filter(function (e) { return e.metrics && e.metrics.available; }).length;
+  const tiles = el("div", { class: "stat-row" });
+  function tile(value, label) {
+    tiles.appendChild(el("div", { class: "stat-tile" }, [
+      el("span", { class: "stat-tile__value", text: value }),
+      el("span", { class: "stat-tile__label", text: label }),
+    ]));
+  }
+  tile(String(present.length), "models reported");
+  tile(String(liveNow), "serving live");
+  tile(String(reported), "with metrics");
+  card.appendChild(tiles);
+
+  const compare = el("div", { class: "model-compare" });
+  compare.appendChild(baseline ? renderModelPanel(baseline) : renderMissingPanel("Baseline model"));
+  compare.appendChild(ft ? renderModelPanel(ft) : renderMissingPanel("Fine-tuned checkpoint"));
+  card.appendChild(compare);
+
+  card.appendChild(el("div", { class: "disclaimer", text: "Comparison note: " + comparisonNote(baseline, ft) }));
+
+  const details = el("details", { class: "tech-details" });
+  details.appendChild(el("summary", { class: "tech-details__summary", text: "Technical details & provenance" }));
+  if (baseline) details.appendChild(renderEntryDetailsBody("Baseline model", baseline));
+  if (ft) details.appendChild(renderEntryDetailsBody("Fine-tuned checkpoint", ft));
+  card.appendChild(details);
+
+  return card;
+}
+
 function renderModels(payload) {
   const list = $("modelsList");
   list.textContent = "";
@@ -1903,35 +2246,21 @@ function renderModels(payload) {
     list.appendChild(el("p", { class: "muted-sm", text: "No models reported by the backend." }));
     return;
   }
-  models.forEach(function (entry) {
-    const card = el("article", { class: "card model-card" });
-    card.appendChild(el("div", { class: "model-card__top" }, [
-      el("span", { class: "model-card__name", text: (entry.display_name || entry.crop) + " · " + (entry.family || "") }),
-      el("span", { class: "badge " + verificationBadgeClass(entry.verification_status), text: entry.verification_status || "unknown" }),
-    ]));
-    card.appendChild(el("p", { class: "model-card__meta", text: entry.display_role || "" }));
 
-    const grid = el("div", { class: "kv-grid" });
-    function kv(key, value) {
-      grid.appendChild(el("div", { class: "kv" }, [
-        el("span", { class: "kv__k", text: key }),
-        el("span", { class: "kv__v", text: value }),
-      ]));
+  const order = [];
+  const byCrop = {};
+  models.forEach(function (entry) {
+    const key = entry.crop || entry.display_name || "unknown";
+    if (!byCrop[key]) {
+      byCrop[key] = { display: entry.display_name || key, models: {} };
+      order.push(key);
     }
-    kv("Architecture", entry.architecture || "—");
-    kv("Implementation", entry.implementation || "—");
-    kv("Classes", entry.num_classes != null ? String(entry.num_classes) : "—");
-    kv("Input size", Array.isArray(entry.input_size) && entry.input_size.length ? entry.input_size.join(" × ") : "—");
-    kv("Checkpoint present", yesNo(entry.checkpoint_present));
-    kv("Checkpoint loads", yesNo(entry.checkpoint_loads));
-    kv("Preprocessing verified", yesNo(entry.preprocessing_verified));
-    kv("Live inference", entry.live_inference_enabled ? "enabled" : "disabled");
-    card.appendChild(grid);
-    if (entry.live_inference_blocked_reason) {
-      card.appendChild(el("p", { class: "muted-sm", text: "Blocked: " + entry.live_inference_blocked_reason }));
-    }
-    card.appendChild(renderMetrics(entry));
-    list.appendChild(card);
+    byCrop[key].models[entry.family || "baseline"] = entry;
+  });
+
+  order.forEach(function (key) {
+    const group = byCrop[key];
+    list.appendChild(renderCropOverview(group.display, group.models.baseline || null, group.models.fine_tuned || null));
   });
 }
 
@@ -2062,6 +2391,10 @@ function bindEvents() {
 
   $("schemeForm").addEventListener("submit", submitSchemeSearch);
   $("schemeClearBtn").addEventListener("click", clearSchemeForm);
+  qsa('input[name="schemeMode"]').forEach(function (input) {
+    input.addEventListener("change", onSchemeModeChange);
+  });
+  setSchemeMode(currentSchemeMode());
 
   $("cropForm").addEventListener("submit", function (event) {
     event.preventDefault();

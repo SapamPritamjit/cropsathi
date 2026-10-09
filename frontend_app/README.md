@@ -77,7 +77,7 @@ backend cannot support the UI need.
 
 | Backend capability | UI location | Status |
 | --- | --- | --- |
-| `GET /health` | Sidebar pill + Dashboard card | Complete |
+| `GET /health` | Sidebar pill | Complete |
 | `GET /crops` | Crop selects (Diagnosis, Schemes, Models, Insights, Charts) | Complete |
 | `GET /models` | **Models**; **Insights → charts** | Complete |
 | `GET /comparison/{crop}` | **Models**; **Insights → charts** | Complete |
@@ -86,8 +86,8 @@ backend cannot support the UI need.
 | `POST /speech/speak` | Spoken-summary **Listen**/**Stop**; browser fallback | Complete |
 | `POST /speech/transcribe` | **Crop Diagnosis → Voice note transcription** | Complete |
 | `GET /schemes/search` | **Scheme Finder** | Complete |
+| `POST /insights/ask` | **Insights → composer** (Ask) | Complete when enabled — off by default, needs a server Groq key (see §7) |
 | Error envelope | All views via `describeError` | Complete |
-| **General crop Q&A** | **Insights → composer** | **Backend-limited — no such endpoint exists (see §7)** |
 
 ## 6. Crop Diagnosis: camera vs. upload
 
@@ -157,29 +157,46 @@ snapshots and are not corrupted when you analyze another image.
   only — it is **not** saved to a server or an account and does not sync across
   devices or reloads.
 - The **conversation** lists every turn with a turn number and timestamp:
-  questions you asked, the AI-unavailable notices, diagnosis references, and
-  backend prediction summaries.
+  questions you asked, the AI answers (or a clear error turn when the feature is
+  off or a request fails), diagnosis references, and backend prediction
+  summaries. Prior turns stay visible; if a question is superseded, its
+  placeholder **Thinking** turn is removed.
 - **Charts** stay available throughout the session (see §9).
 - **Clear session** empties the conversation.
 - Changing the crop is explicit: the earlier turns are cleared and a note says a
   new session started, so answers/data from different crops are never mixed.
 
-### General AI question-answering is NOT available
+### General AI question-answering (`POST /insights/ask`)
 
-The backend exposes only `/health`, `/crops`, `/models`, `/comparison/{crop}`,
-`/predict`, `/speech/speak`, `/speech/transcribe`, `/speech/response`, and
-`/schemes/search`. There is **no** general crop question-answering / chatbot
-endpoint (verified in `backend/app/routers`). Therefore:
+The composer connects to the backend's general crop Q&A endpoint
+`POST /insights/ask` (see `backend/app/routers/insights.py`). That endpoint is
+**disabled by default** and needs a server-side Groq API key, so availability
+depends on the operator's configuration:
 
-- The composer accepts and records your question as a turn, then adds an
-  explicit **AI unavailable** turn that names the missing endpoint and lists the
-  real features that do work. **No answer is invented, and no question or
-  context is sent to any AI model.**
-- `/speech/response` is used only as a *prediction summary* (a backend
-  transformation of a diagnosis) — it is never presented as general Q&A.
-- To enable answering, a future endpoint such as `POST /insights/ask` would need
-  to accept the crop, topic, question and prior conversation and return a
-  grounded text answer. No secret or provider key is ever sent to the browser.
+- Pressing **Ask** sends JSON with the required `crop` and `question`, the
+  selected `topic`, and — only when the most recent diagnosis in this tab
+  belongs to the **same crop** — a `context` object with the supported fields
+  `predicted_label`, `confidence` and `family`. Only the **current** question is
+  sent: prior turns stay visible in the tab but are not sent, because the
+  contract does not accept conversation history.
+- While the request is in flight the Ask button is disabled (label
+  **Asking…**), a **Thinking** turn is added, and the status reads *Waiting for
+  the backend AI service…*.
+- On success the **AI answer** turn shows the returned `answer`, the response
+  `disclaimer` and the model id + topic. A response with an empty/missing
+  `answer` is shown as an error — nothing is invented.
+- Errors surface the standard backend envelope through `describeError`:
+  `insights_disabled` and `insights_not_configured` explain that the **operator**
+  must enable the feature / set the API key; network, timeout, rate-limit,
+  upstream and validation errors show their mapped messages.
+- **No API key ever reaches the browser** and no fallback answer is generated.
+- A new **Ask**, changing the crop, or **Clear session** aborts any in-flight
+  question so a stale answer cannot appear after the conversation changed.
+- AI answers are **never spoken automatically** — use a section speaker button
+  if you want to hear one.
+
+`/speech/response` is still used only as a *prediction summary* (a backend
+transformation of a diagnosis) — it is never presented as general Q&A.
 
 ## 8. Text-to-speech: page and section reading (browser)
 

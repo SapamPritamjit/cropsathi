@@ -280,6 +280,40 @@ class Settings:
         self.scheme_catalogue_enabled: bool = _parse_bool(
             os.environ.get("SCHEME_CATALOGUE_ENABLED")
         )
+        # --- Increment 9P: Groq crop question answering (server-side only) ---
+        # DISABLED by default. When enabled AND the Groq API key is configured,
+        # POST /insights/ask asks the configured chat model a crop-related
+        # question. The API key is never stored on Settings (only the derived
+        # boolean below exists), and no answer is fabricated on any failure.
+        self.groq_insights_enabled: bool = _parse_bool(
+            os.environ.get("GROQ_INSIGHTS_ENABLED")
+        )
+        self.groq_chat_url: str = os.environ.get(
+            "GROQ_CHAT_URL",
+            "https://api.groq.com/openai/v1/chat/completions",
+        )
+        # Model ID verified against Groq's official docs (Supported Models and
+        # API Reference both list llama-3.3-70b-versatile for chat completions).
+        self.groq_chat_model: str = os.environ.get(
+            "GROQ_CHAT_MODEL", "llama-3.3-70b-versatile"
+        )
+        self.groq_chat_timeout_seconds: float = _parse_positive_float(
+            os.environ.get("GROQ_CHAT_TIMEOUT_SECONDS"),
+            20.0,
+            "GROQ_CHAT_TIMEOUT_SECONDS",
+        )
+        # Bounded input (characters) and output (tokens). Both fail loudly when
+        # misconfigured, consistent with the scheme-search settings.
+        self.groq_chat_max_input_chars: int = _parse_positive_int(
+            os.environ.get("GROQ_CHAT_MAX_INPUT_CHARS"),
+            500,
+            "GROQ_CHAT_MAX_INPUT_CHARS",
+        )
+        self.groq_chat_max_tokens: int = _parse_positive_int(
+            os.environ.get("GROQ_CHAT_MAX_TOKENS"),
+            400,
+            "GROQ_CHAT_MAX_TOKENS",
+        )
 
 
 settings = Settings()
